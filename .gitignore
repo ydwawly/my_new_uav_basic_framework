@@ -1,0 +1,8 @@
+Build/
+.mxproject
+*.o
+*.d
+*.crf
+*.htm
+*.lnp
+*.axf
