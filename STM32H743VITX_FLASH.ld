@@ -34,143 +34,267 @@
 /* Entry Point */
 ENTRY(Reset_Handler)
 
-/* Highest address of the user mode stack */
-_estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);    /* end of RAM */
-/* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0x2000;      /* required amount of heap  */
-_Min_Stack_Size = 0x4000; /* required amount of stack */
+/* 栈顶 */
 
-/* Specify the memory areas */
+_estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);
+
+/* heap / stack */
+
+_Min_Heap_Size  = 0x4000;
+_Min_Stack_Size = 0x4000;
+
+/*************************************************
+ * Memory Layout
+ *************************************************/
+
 MEMORY
 {
-  FLASH (rx)     : ORIGIN = 0x08000000, LENGTH = 2048K
-  DTCMRAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 128K
-  RAM_D1 (xrw)   : ORIGIN = 0x24000000, LENGTH = 512K
-  RAM_D2 (xrw)   : ORIGIN = 0x30000000, LENGTH = 288K
-  RAM_D3 (xrw)   : ORIGIN = 0x38000000, LENGTH = 64K
-  ITCMRAM (xrw)  : ORIGIN = 0x00000000, LENGTH = 64K
+    FLASH    (rx)  : ORIGIN = 0x08020000, LENGTH = 1920K
+
+    ITCMRAM  (xrw) : ORIGIN = 0x00000000, LENGTH = 64K
+
+    DTCMRAM  (xrw) : ORIGIN = 0x20000000, LENGTH = 128K
+
+    RAM_D1   (xrw) : ORIGIN = 0x24000000, LENGTH = 512K
+
+    RAM_D2   (xrw) : ORIGIN = 0x30000000, LENGTH = 288K
+
+    RAM_D3   (xrw) : ORIGIN = 0x38000000, LENGTH = 64K
 }
 
-/* Define output sections */
+/*************************************************
+ * Sections
+ *************************************************/
+
 SECTIONS
 {
-  /* The startup code goes first into FLASH */
-  .isr_vector :
-  {
-    . = ALIGN(4);
-    KEEP(*(.isr_vector)) /* Startup code */
-    . = ALIGN(4);
-  } >FLASH
 
-  /* The program code and other data goes into FLASH */
-  .text :
-  {
+/*************************************************
+ * Vector Table
+ *************************************************/
+
+.isr_vector :
+{
     . = ALIGN(4);
-    *(.text)           /* .text sections (code) */
-    *(.text*)          /* .text* sections (code) */
-    *(.glue_7)         /* glue arm to thumb code */
-    *(.glue_7t)        /* glue thumb to arm code */
+
+    KEEP(*(.isr_vector))
+
+    . = ALIGN(4);
+
+} > FLASH
+
+
+/*************************************************
+ * Code
+ *************************************************/
+
+.text :
+{
+    . = ALIGN(4);
+
+    *(.text)
+    *(.text*)
+
+    *(.glue_7)
+    *(.glue_7t)
+
     *(.eh_frame)
 
-    KEEP (*(.init))
-    KEEP (*(.fini))
+    KEEP(*(.init))
+    KEEP(*(.fini))
 
     . = ALIGN(4);
-    _etext = .;        /* define a global symbols at end of code */
-  } >FLASH
 
-  /* Constant data goes into FLASH */
-  .rodata :
-  {
-    . = ALIGN(4);
-    *(.rodata)         /* .rodata sections (constants, strings, etc.) */
-    *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
-    . = ALIGN(4);
-  } >FLASH
+    _etext = .;
 
-  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
-  .ARM : {
+} > FLASH
+
+
+/*************************************************
+ * Read Only Data
+ *************************************************/
+
+.rodata :
+{
+    . = ALIGN(4);
+
+    *(.rodata)
+    *(.rodata*)
+
+    . = ALIGN(4);
+
+} > FLASH
+
+
+/*************************************************
+ * Exception Table
+ *************************************************/
+
+.ARM.extab :
+{
+    *(.ARM.extab*)
+} > FLASH
+
+.ARM :
+{
     __exidx_start = .;
     *(.ARM.exidx*)
     __exidx_end = .;
-  } >FLASH
+} > FLASH
 
-  .preinit_array     :
-  {
-    PROVIDE_HIDDEN (__preinit_array_start = .);
-    KEEP (*(.preinit_array*))
-    PROVIDE_HIDDEN (__preinit_array_end = .);
-  } >FLASH
 
-  .init_array :
-  {
-    PROVIDE_HIDDEN (__init_array_start = .);
-    KEEP (*(SORT(.init_array.*)))
-    KEEP (*(.init_array*))
-    PROVIDE_HIDDEN (__init_array_end = .);
-  } >FLASH
+/*************************************************
+ * ITCM CODE
+ *************************************************/
 
-  .fini_array :
-  {
-    PROVIDE_HIDDEN (__fini_array_start = .);
-    KEEP (*(SORT(.fini_array.*)))
-    KEEP (*(.fini_array*))
-    PROVIDE_HIDDEN (__fini_array_end = .);
-  } >FLASH
+_siitcm = LOADADDR(.itcm_text);
 
-  /* used by the startup to initialize data */
-  _sidata = LOADADDR(.data);
-
-  /* Initialized data sections goes into RAM, load LMA copy after code */
-  .data :
-  {
+.itcm_text :
+{
     . = ALIGN(4);
-    _sdata = .;        /* create a global symbol at data start */
-    *(.data)           /* .data sections */
-    *(.data*)          /* .data* sections */
-    *(.RamFunc)        /* .RamFunc sections */
-    *(.RamFunc*)       /* .RamFunc* sections */
+
+    _sitcm = .;
+
+    *(.itcm)
+    *(.itcm*)
 
     . = ALIGN(4);
-    _edata = .;        /* define a global symbol at data end */
-  } >RAM_D1 AT> FLASH
 
-  /* Uninitialized data section */
-  . = ALIGN(4);
-  .bss :
-  {
-    /* This is used by the startup in order to initialize the .bss section */
-    _sbss = .;         /* define a global symbol at bss start */
-    __bss_start__ = _sbss;
+    _eitcm = .;
+
+} > ITCMRAM AT > FLASH
+
+
+/*************************************************
+ * DTCM DATA
+ *************************************************/
+
+_sidtcm = LOADADDR(.dtcm_data);
+
+.dtcm_data :
+{
+    . = ALIGN(4);
+
+    _sdtcm = .;
+
+    *(.dtcm)
+    *(.dtcm*)
+
+    . = ALIGN(4);
+
+    _edtcm = .;
+
+} > DTCMRAM AT > FLASH
+
+
+/*************************************************
+ * Initialized Data
+ *************************************************/
+
+_sidata = LOADADDR(.data);
+
+.data :
+{
+    . = ALIGN(4);
+
+    _sdata = .;
+
+    *(.data)
+    *(.data*)
+
+    . = ALIGN(4);
+
+    _edata = .;
+
+} > RAM_D1 AT > FLASH
+
+
+/*************************************************
+ * DMA BUFFER
+ *************************************************/
+
+.dma_buffer (NOLOAD):
+{
+    . = ALIGN(32);
+
+    *(.dma_buffer)
+    *(.dma_buffer*)
+
+    . = ALIGN(32);
+
+} > RAM_D2
+
+
+/*************************************************
+ * FAST STACK
+ *************************************************/
+
+.fast_stack (NOLOAD):
+{
+    . = ALIGN(8);
+
+    *(.fast_stack)
+    *(.fast_stack*)
+
+    . = ALIGN(8);
+
+} > DTCMRAM
+
+
+/*************************************************
+ * BSS
+ *************************************************/
+
+.bss :
+{
+    . = ALIGN(4);
+
+    _sbss = .;
+
     *(.bss)
     *(.bss*)
     *(COMMON)
 
     . = ALIGN(4);
-    _ebss = .;         /* define a global symbol at bss end */
-    __bss_end__ = _ebss;
-  } >RAM_D1
 
-  /* User_heap_stack section, used to check that there is enough RAM left */
-  ._user_heap_stack :
-  {
+    _ebss = .;
+
+} > RAM_D1
+
+
+/*************************************************
+ * Heap Stack
+ *************************************************/
+
+._user_heap_stack :
+{
     . = ALIGN(8);
-    PROVIDE ( end = . );
-    PROVIDE ( _end = . );
+
+    PROVIDE(end = .);
+    PROVIDE(_end = .);
+
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
+
     . = ALIGN(8);
-  } >RAM_D1
 
-  /* Remove information from the standard libraries */
-  /DISCARD/ :
-  {
-    libc.a ( * )
-    libm.a ( * )
-    libgcc.a ( * )
-  }
+} > RAM_D1
 
-  .ARM.attributes 0 : { *(.ARM.attributes) }
+
+/*************************************************
+ * Remove Standard Lib
+ *************************************************/
+
+DISCARD :
+{
+    libc.a(*)
+    libm.a(*)
+    libgcc.a(*)
 }
 
+.ARM.attributes 0 :
+{
+    *(.ARM.attributes)
+}
 
+}
