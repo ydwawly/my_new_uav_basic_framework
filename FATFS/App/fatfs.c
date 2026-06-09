@@ -17,10 +17,12 @@
   */
 /* USER CODE END Header */
 #include "fatfs.h"
-
+#include "memory_section.h"
 uint8_t retSD;    /* Return value for SD */
 char SDPath[4];   /* SD logical drive path */
+DMA_BUFFER
 FATFS SDFatFS;    /* File system object for SD logical drive */
+DMA_BUFFER
 FIL SDFile;       /* File object for SD */
 
 /* USER CODE BEGIN Variables */

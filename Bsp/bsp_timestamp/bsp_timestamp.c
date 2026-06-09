@@ -92,13 +92,7 @@ float Bsp_DWT_Get_DeltaT(uint32_t *last_cycle)
     return (float)delta_cycles / (float)SystemCoreClock;
 }
 
-// ---------------------------------------------------------
-// 底层硬件中断回调函数区
-// ---------------------------------------------------------
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    // 检查是否是 TIM2 触发的更新(溢出)中断
-    if (htim->Instance == TIM2)
-    {
-        time_overflow_count++; // 溢出次数加 1，即 64位时间戳的高 32 位进位
-    }
+void Bsp_Timestamp_Update(void)
+{
+    time_overflow_count++; // 溢出次数加 1，即 64位时间戳的高 32 位进位
 }

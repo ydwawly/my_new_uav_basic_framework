@@ -1,0 +1,123 @@
+/*********************************************************************
+*                    SEGGER Microcontroller GmbH                     *
+*                        The Embedded Experts                        *
+**********************************************************************
+*                                                                    *
+*            (c) 1995 - 2023 SEGGER Microcontroller GmbH             *
+*                                                                    *
+*       www.segger.com     Support: support@segger.com               *
+*                                                                    *
+**********************************************************************
+*                                                                    *
+*       SEGGER SystemView * Real-time application analysis           *
+*                                                                    *
+**********************************************************************
+*                                                                    *
+* All rights reserved.                                               *
+*                                                                    *
+* SEGGER strongly recommends to not make any changes                 *
+* to or modify the source code of this software in order to stay     *
+* compatible with the SystemView and RTT protocol, and J-Link.       *
+*                                                                    *
+* Redistribution and use in source and binary forms, with or         *
+* without modification, are permitted provided that the following    *
+* condition is met:                                                  *
+*                                                                    *
+* o Redistributions of source code must retain the above copyright   *
+*   notice, this condition and the following disclaimer.             *
+*                                                                    *
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND             *
+* CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,        *
+* INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF           *
+* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE           *
+* DISCLAIMED. IN NO EVENT SHALL SEGGER Microcontroller BE LIABLE FOR *
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR           *
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT  *
+* OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;    *
+* OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF      *
+* LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT          *
+* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE  *
+* USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH   *
+* DAMAGE.                                                            *
+*                                                                    *
+**********************************************************************
+*                                                                    *
+*       SystemView version: 3.50                                    *
+*                                                                    *
+**********************************************************************
+-------------------------- END-OF-HEADER -----------------------------
+
+File    : SEGGER_SYSVIEW_Config_FreeRTOS.c
+Purpose : Sample setup configuration of SystemView with FreeRTOS.
+Revision: $Rev: 7745 $
+*/
+#include "FreeRTOS.h"
+#include "SEGGER_SYSVIEW.h"
+#include "SEGGER_RTT.h"      // <<<<< 新增：引入 RTT 头文件
+#include "main.h"
+__attribute__((section(".rtt_memory"))) static U8 _UpBuffer[1024];
+extern const SEGGER_SYSVIEW_OS_API SYSVIEW_X_OS_TraceAPI;
+
+/*********************************************************************
+*
+*       Defines, configurable
+*
+**********************************************************************
+*/
+// The application name to be displayed in SystemViewer
+#define SYSVIEW_APP_NAME        "FreeRTOS Demo Application"
+
+// The target device name
+#define SYSVIEW_DEVICE_NAME     "Cortex-M7"
+
+// Frequency of the timestamp. Must match SEGGER_SYSVIEW_GET_TIMESTAMP in SEGGER_SYSVIEW_Conf.h
+#define SYSVIEW_TIMESTAMP_FREQ  (configCPU_CLOCK_HZ)
+
+// System Frequency. SystemcoreClock is used in most CMSIS compatible projects.
+#define SYSVIEW_CPU_FREQ        configCPU_CLOCK_HZ
+
+// The lowest RAM address used for IDs (pointers)
+#define SYSVIEW_RAM_BASE        (0x10000000)
+
+/********************************************************************* 
+*
+*       _cbSendSystemDesc()
+*
+*  Function description
+*    Sends SystemView description strings.
+*/
+static void _cbSendSystemDesc(void) {
+  SEGGER_SYSVIEW_SendSysDesc("N="SYSVIEW_APP_NAME",D="SYSVIEW_DEVICE_NAME",O=FreeRTOS");
+  SEGGER_SYSVIEW_SendSysDesc("I#15=SysTick");
+    SEGGER_SYSVIEW_SendSysDesc("I#177=TIM17_HAL_Tick");
+}
+
+/*********************************************************************
+*
+*       Global functions
+*
+**********************************************************************
+*/
+void SEGGER_SYSVIEW_Conf(void) {
+    U32 SysClock = SystemCoreClock;
+
+    // 1. 【绝对优先：先给碗！】必须在 Init 之前把内存绑死！
+    // 绝不能颠倒，否则 Init 内部一发数据，没内存就会触发 SizeOfBuffer=0 死机！
+    SEGGER_RTT_ConfigUpBuffer(SEGGER_SYSVIEW_RTT_CHANNEL, "SysView", _UpBuffer, sizeof(_UpBuffer), SEGGER_RTT_MODE_NO_BLOCK_SKIP);
+
+    // 暴力兜底：防止任何底层重置，强行把结构体参数写死
+    extern SEGGER_RTT_CB _SEGGER_RTT;
+    _SEGGER_RTT.aUp[SEGGER_SYSVIEW_RTT_CHANNEL].pBuffer = (char*)_UpBuffer;
+    _SEGGER_RTT.aUp[SEGGER_SYSVIEW_RTT_CHANNEL].SizeOfBuffer = sizeof(_UpBuffer);
+    _SEGGER_RTT.aUp[SEGGER_SYSVIEW_RTT_CHANNEL].WrOff = 0; // 强行清零写入偏移
+    _SEGGER_RTT.aUp[SEGGER_SYSVIEW_RTT_CHANNEL].RdOff = 0; // 强行清零读取偏移
+    _SEGGER_RTT.aUp[SEGGER_SYSVIEW_RTT_CHANNEL].Flags = SEGGER_RTT_MODE_NO_BLOCK_SKIP;
+
+    // 2. 【再盛饭！】内存彻底就绪后，再执行 Init！
+    SEGGER_SYSVIEW_Init(SysClock, SysClock, &SYSVIEW_X_OS_TraceAPI, _cbSendSystemDesc);
+
+    // 3. 最后设置 RAM 基地址
+    SEGGER_SYSVIEW_SetRAMBase(0x20000000);
+}
+
+/*************************** End of file ****************************/

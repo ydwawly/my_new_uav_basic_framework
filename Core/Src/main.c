@@ -33,6 +33,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "bsp_mpu.h"
+#include "bsp_init.h"
+#include "bsp_timestamp.h"
+#include "SEGGER_SYSVIEW.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -128,7 +131,8 @@ int main(void)
   MX_TIM15_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-
+  Bsp_Init();
+  SEGGER_SYSVIEW_Conf();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -258,7 +262,9 @@ void PeriphCommonClock_Config(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
-
+  if (htim->Instance == TIM2) {
+    Bsp_Timestamp_Update();
+  }
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM17) {
     HAL_IncTick();

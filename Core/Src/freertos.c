@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include "bsp_RTT.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
@@ -25,7 +26,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "SEGGER_SYSVIEW.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,13 +46,13 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+static uint8_t g_sysview_started = 0u;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 128 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -116,17 +117,60 @@ void StartDefaultTask(void *argument)
 {
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
+  float roll = 10;
+  float pitch = 20;
+  int armed = 30;
+
   /* USER CODE BEGIN StartDefaultTask */
+  if (g_sysview_started == 0u)
+  {
+    g_sysview_started = 1u;
+    SEGGER_SYSVIEW_Start();
+  }
+
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    char roll_str[16];
+    char pitch_str[16];
+
+    RTTINFO("debug start");
+
+    if (Float2Str(roll_str, sizeof(roll_str), roll) > 0 &&
+        Float2Str(pitch_str, sizeof(pitch_str), pitch) > 0)
+    {
+      RTTINFO("armed=%d roll=%s pitch=%s", armed, roll_str, pitch_str);
+    }
+    else
+    {
+      RTTERROR("float format failed");
+    }
+    RTTINFO("stack watermark=%u", (unsigned)uxTaskGetStackHighWaterMark(NULL));
+    osDelay(200);
   }
   /* USER CODE END StartDefaultTask */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
+
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+  (void)xTask;
+  (void)pcTaskName;
+  taskDISABLE_INTERRUPTS();
+  for (;;)
+  {
+  }
+}
+
+void vApplicationMallocFailedHook(void)
+{
+  taskDISABLE_INTERRUPTS();
+  for (;;)
+  {
+  }
+}
 
 /* USER CODE END Application */
 

@@ -56,4 +56,11 @@ uint32_t Bsp_DWT_Get_Cycle(void);
  */
 float Bsp_DWT_Get_DeltaT(uint32_t *last_cycle);
 
+/**
+ * @brief  时间戳系统定时器溢出更新钩子函数
+ * @note   请在 main.c 的 HAL_TIM_PeriodElapsedCallback 中调用
+ */
+void Bsp_Timestamp_Update(void);
+
+
 #endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_TIMESTAMP_H

@@ -53,6 +53,9 @@ include_directories(
         FATFS/App
         USB_DEVICE/App
         USB_DEVICE/Target
+        Middlewares/Third_Party/SEGGER/Config
+        Middlewares/Third_Party/SEGGER/RTT
+        Middlewares/Third_Party/SEGGER/SysView
         Drivers/STM32H7xx_HAL_Driver/Inc
         Drivers/STM32H7xx_HAL_Driver/Inc/Legacy
         Middlewares/Third_Party/FreeRTOS/Source/include
@@ -63,7 +66,7 @@ include_directories(
         Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
         Drivers/CMSIS/Device/ST/STM32H7xx/Include
         Drivers/CMSIS/Include
-        Bsp Bsp/bsp_mpu Bsp/bsp_timestamp
+        Bsp Bsp/bsp_mpu Bsp/bsp_timestamp Bsp/bsp_RTT Bsp/bsp_ringbuffer
 )
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32H743xx)

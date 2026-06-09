@@ -134,6 +134,14 @@ SECTIONS
     _edata = .;        /* define a global symbol at data end */
   } >DTCMRAM AT> RAM_EXEC
 
+  .rtt_memory (NOLOAD) :
+  {
+    . = ALIGN(32);
+    *(.rtt_memory)
+    *(.rtt_memory*)
+    . = ALIGN(32);
+  } >RAM_D2
+
   /* Uninitialized data section */
   . = ALIGN(4);
   .bss :
