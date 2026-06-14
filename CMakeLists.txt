@@ -66,13 +66,14 @@ include_directories(
         Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
         Drivers/CMSIS/Device/ST/STM32H7xx/Include
         Drivers/CMSIS/Include
-        Bsp Bsp/bsp_mpu Bsp/bsp_timestamp Bsp/bsp_RTT Bsp/bsp_ringbuffer
+        Bsp Bsp/bsp_mpu Bsp/bsp_timestamp Bsp/bsp_RTT Bsp/bsp_ringbuffer Bsp/bsp_spi
+        Modules Modules/modules_BMI088 Modules/modules_BMI270 Modules/modules_Algorithm/user_math
 )
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32H743xx)
 
 file(GLOB_RECURSE SOURCES "Core/*.*" "FATFS/*.*" "Middlewares/*.*" "USB_DEVICE/*.*" "Drivers/*.*"
-        "Bsp/*.*"
+        "Bsp/*.*" "Modules/*.*"
 )
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32H743VITX_FLASH.ld)

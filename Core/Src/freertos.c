@@ -26,6 +26,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "modules_BMI088.h"
+#include "modules_BMI270.h"
 #include "SEGGER_SYSVIEW.h"
 /* USER CODE END Includes */
 
@@ -52,7 +54,7 @@ static uint8_t g_sysview_started = 0u;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 512 * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -113,40 +115,41 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
+BMI270_Data_t imu1_data;
+BMI088_Data_t imu2_data;
 void StartDefaultTask(void *argument)
 {
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
-  float roll = 10;
-  float pitch = 20;
-  int armed = 30;
-
-  /* USER CODE BEGIN StartDefaultTask */
-  if (g_sysview_started == 0u)
+  BMI270_Status_e status = BMI270_Init();
+  if (status != BMI270_OK)
   {
-    g_sysview_started = 1u;
-    SEGGER_SYSVIEW_Start();
+    /* 初始化失败，闪灯或串口报错 */
+    while (1)
+    {
+      // HAL_GPIO_TogglePin(GPIOH, GPIO_PIN_10);
+      // HAL_Delay(100);
+    }
   }
+  BMI088_Status_e status1 = BMI088_Init();
+  if (status1 != BMI088_OK)
+  {
+    /* 初始化失败，闪灯或串口报错 */
+    while (1)
+    {
+      // HAL_GPIO_TogglePin(GPIOH, GPIO_PIN_10);
+      // HAL_Delay(100);
+    }
+  }
+  /* USER CODE BEGIN StartDefaultTask */
+
 
   /* Infinite loop */
   for(;;)
   {
-    char roll_str[16];
-    char pitch_str[16];
-
-    RTTINFO("debug start");
-
-    if (Float2Str(roll_str, sizeof(roll_str), roll) > 0 &&
-        Float2Str(pitch_str, sizeof(pitch_str), pitch) > 0)
-    {
-      RTTINFO("armed=%d roll=%s pitch=%s", armed, roll_str, pitch_str);
-    }
-    else
-    {
-      RTTERROR("float format failed");
-    }
-    RTTINFO("stack watermark=%u", (unsigned)uxTaskGetStackHighWaterMark(NULL));
-    osDelay(200);
+    BMI270_GetData(&imu1_data);
+    BMI088_GetData(&imu2_data);
+    osDelay(1);
   }
   /* USER CODE END StartDefaultTask */
 }

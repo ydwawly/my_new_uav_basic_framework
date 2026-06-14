@@ -49,7 +49,9 @@ _Min_Stack_Size = 0x4000;
 
 MEMORY
 {
-    FLASH    (rx)  : ORIGIN = 0x08020000, LENGTH = 1920K
+/* Bootloader专用 */
+/*    FLASH    (rx)  : ORIGIN = 0x08020000, LENGTH = 1920K*/
+    FLASH    (rx)  : ORIGIN = 0x08000000, LENGTH = 2048K
 
     ITCMRAM  (xrw) : ORIGIN = 0x00000000, LENGTH = 64K
 

@@ -20,8 +20,11 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32h7xx_it.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "modules_BMI270.h"
+#include "modules_BMI088.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -561,5 +564,20 @@ void TIM17_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  switch (GPIO_Pin)
+  {
+  case GPIO_PIN_7:   // PB7 = BMI270 DRDY
+    BMI270_DRDY_Handler();
+    break;
 
+  case GPIO_PIN_15:  // PC15 = BMI088 GYRO DRDY (如果同时使用)
+    BMI088_GYRO_DRDY_Handler();
+    break;
+
+  default:
+    break;
+  }
+}
 /* USER CODE END 1 */

@@ -10,6 +10,8 @@ static volatile uint32_t time_overflow_count = 0;
 
 void Bsp_Timestamp_Init(void)
 {
+    //清除由于初始化(UG位置位)而残留的更新中断标志
+    __HAL_TIM_CLEAR_IT(&htim2, TIM_IT_UPDATE);
     // 1. 启动 TIM2 并开启溢出中断 (大约每 71.5 分钟溢出一次)
     HAL_TIM_Base_Start_IT(&htim2);
 

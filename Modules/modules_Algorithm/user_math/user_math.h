@@ -1,0 +1,14 @@
+//
+// Created by Administrator on 2026/6/14.
+//
+
+#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_USER_MATH_H
+#define MY_NEW_UAV_BAICE_FRAMEWORK_USER_MATH_H
+
+
+#define PI 3.14159265358979323846f
+#define DEG_TO_RAD 0.01745329252f
+#define IMU_X 0
+#define IMU_Y 1
+#define IMU_Z 2
+#endif //MY_NEW_UAV_BAICE_FRAMEWORK_USER_MATH_H
