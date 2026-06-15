@@ -66,8 +66,10 @@ include_directories(
         Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
         Drivers/CMSIS/Device/ST/STM32H7xx/Include
         Drivers/CMSIS/Include
-        Bsp Bsp/bsp_mpu Bsp/bsp_timestamp Bsp/bsp_RTT Bsp/bsp_ringbuffer Bsp/bsp_spi
-        Modules Modules/modules_BMI088 Modules/modules_BMI270 Modules/modules_Algorithm/user_math
+        Bsp Bsp/bsp_mpu Bsp/bsp_timestamp Bsp/bsp_RTT Bsp/bsp_ringbuffer Bsp/bsp_spi Bsp/bsp_uart Bsp/bsp_memory_section
+        Bsp/bsp_utils_seqlock
+        Modules Modules/modules_BMI088 Modules/modules_BMI270 Modules/modules_Algorithm/user_math Modules/modules_mtf02
+        Modules/modules_Message_center
 )
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32H743xx)

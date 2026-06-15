@@ -17,7 +17,7 @@
   */
 /* USER CODE END Header */
 #include "fatfs.h"
-#include "memory_section.h"
+#include "bsp_memory_section.h"
 uint8_t retSD;    /* Return value for SD */
 char SDPath[4];   /* SD logical drive path */
 DMA_BUFFER

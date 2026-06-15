@@ -7,16 +7,13 @@
 #include "modules_BMI270_config_file.h"
 #include "modules_BMI270_reg.h"
 #include "string.h"
-#include "memory_section.h"
+#include "bsp_memory_section.h"
 #include "user_math.h"
 /* ===================== 全局唯一实例 ===================== */
 static BMI270_Instance_t bmi270;
 /* 在 .c 文件内部定义静态的 DMA 专属内存，并强制分配到非 Cache 段 */
 static uint8_t bmi270_dma_tx_buf[BMI270_DMA_BUF_SIZE] DMA_BUFFER;
 static uint8_t bmi270_dma_rx_buf[2][BMI270_DMA_BUF_SIZE] DMA_BUFFER;
-/* 序列锁最大读取重试次数 */
-#define SEQLOCK_MAX_RETRY  3
-
 /* ===================== 私有函数声明 ===================== */
 
 static HAL_StatusTypeDef BMI270_WriteReg(uint8_t reg, uint8_t val);
@@ -51,7 +48,7 @@ static HAL_StatusTypeDef BMI270_WriteReg(uint8_t reg, uint8_t val)
  * @brief BMI270 读单个寄存器（阻塞）
  *
  * SPI 读协议：发 [reg|0x80, dummy, dummy]
- *             收 [x, x, value]
+ * 收 [x, x, value]
  * BMI270 读操作第一个返回字节是 dummy
  */
 static HAL_StatusTypeDef BMI270_ReadReg(uint8_t reg, uint8_t *val)
@@ -75,7 +72,7 @@ static HAL_StatusTypeDef BMI270_ReadReg(uint8_t reg, uint8_t *val)
 
 /**
  * @brief BMI270 burst write（阻塞）
- *        用于上传配置文件，每次最多写一个 burst
+ * 用于上传配置文件，每次最多写一个 burst
  *
  * 协议：[reg & 0x7F, data[0], data[1], ...]
  */
@@ -126,12 +123,12 @@ static HAL_StatusTypeDef BMI270_BurstWrite(uint8_t reg, const uint8_t *data, uin
  * BMI270 必须在初始化阶段上传约 8KB 的配置文件才能正常工作
  *
  * 流程：
- *   1. 写 INIT_CTRL = 0x00（准备接收配置文件）
- *   2. 分块（每块最多 256 字节）写入 INIT_DATA (0x5E)
- *      每块前需要先设置 INIT_ADDR_0/1 指定偏移量
- *   3. 写 INIT_CTRL = 0x01（完成上传，触发内部初始化）
- *   4. 等待 >= 140ms
- *   5. 读 INTERNAL_STATUS 检查结果
+ * 1. 写 INIT_CTRL = 0x00（准备接收配置文件）
+ * 2. 分块（每块最多 256 字节）写入 INIT_DATA (0x5E)
+ * 每块前需要先设置 INIT_ADDR_0/1 指定偏移量
+ * 3. 写 INIT_CTRL = 0x01（完成上传，触发内部初始化）
+ * 4. 等待 >= 140ms
+ * 5. 读 INTERNAL_STATUS 检查结果
  */
 static BMI270_Status_e BMI270_UploadConfigFile(void)
 {
@@ -141,9 +138,9 @@ static BMI270_Status_e BMI270_UploadConfigFile(void)
 
     /*
      * 2. 分块上传
-     *    每次写 256 字节（最后一块可能不足 256）
-     *    INIT_ADDR 的单位是 "word"（每个 word = 2 字节）
-     *    所以每写 256 字节，地址增加 128
+     * 每次写 256 字节（最后一块可能不足 256）
+     * INIT_ADDR 的单位是 "word"（每个 word = 2 字节）
+     * 所以每写 256 字节，地址增加 128
      */
     uint16_t offset = 0;
     uint16_t remaining = bmi270_config_file_size;
@@ -197,10 +194,10 @@ static BMI270_Status_e BMI270_UploadConfigFile(void)
  * @brief DMA 读取完成回调
  *
  * 工作流程：
- *   DRDY (EXTI PB7) → 启动 DMA TransRecv → 完成后进入此回调
- *     ① 切换双缓冲区索引
- *     ② 在序列锁保护下解析数据到 bmi270.data
- *     ③ 标记 DMA 空闲
+ * DRDY (EXTI PB7) → 启动 DMA TransRecv → 完成后进入此回调
+ * ① 切换双缓冲区索引
+ * ② 在序列锁保护下解析数据到 bmi270.data
+ * ③ 标记 DMA 空闲
  */
 static void BMI270_DMA_Callback(SPIInstance *ins, SPI_Event_e event)
 {
@@ -239,25 +236,25 @@ static void BMI270_DMA_Callback(SPIInstance *ins, SPI_Event_e event)
  *
  * 缓冲区布局（17 字节）：
  *
- *   Index  含义
- *   ─────────────────────────────
- *   [0]    dummy（SPI 地址回显）
- *   [1]    dummy（BMI270 SPI 读 dummy）
- *   [2]    ACC_X_LSB
- *   [3]    ACC_X_MSB
- *   [4]    ACC_Y_LSB
- *   [5]    ACC_Y_MSB
- *   [6]    ACC_Z_LSB
- *   [7]    ACC_Z_MSB
- *   [8]    GYR_X_LSB
- *   [9]    GYR_X_MSB
- *   [10]   GYR_Y_LSB
- *   [11]   GYR_Y_MSB
- *   [12]   GYR_Z_LSB
- *   [13]   GYR_Z_MSB
- *   [14]   SENSORTIME_0
- *   [15]   SENSORTIME_1
- *   [16]   SENSORTIME_2
+ * Index  含义
+ * ─────────────────────────────
+ * [0]    dummy（SPI 地址回显）
+ * [1]    dummy（BMI270 SPI 读 dummy）
+ * [2]    ACC_X_LSB
+ * [3]    ACC_X_MSB
+ * [4]    ACC_Y_LSB
+ * [5]    ACC_Y_MSB
+ * [6]    ACC_Z_LSB
+ * [7]    ACC_Z_MSB
+ * [8]    GYR_X_LSB
+ * [9]    GYR_X_MSB
+ * [10]   GYR_Y_LSB
+ * [11]   GYR_Y_MSB
+ * [12]   GYR_Z_LSB
+ * [13]   GYR_Z_MSB
+ * [14]   SENSORTIME_0
+ * [15]   SENSORTIME_1
+ * [16]   SENSORTIME_2
  *
  * @note 此函数在序列锁保护内调用，不要做耗时操作
  */
@@ -387,10 +384,10 @@ BMI270_Status_e BMI270_Init(void)
 
     /*
      * 加速度计灵敏度：
-     *   ±2g  → 16384 LSB/g
-     *   ±4g  → 8192  LSB/g
-     *   ±8g  → 4096  LSB/g
-     *   ±16g → 2048  LSB/g
+     * ±2g  → 16384 LSB/g
+     * ±4g  → 8192  LSB/g
+     * ±8g  → 4096  LSB/g
+     * ±16g → 2048  LSB/g
      *
      * 这里选 ±8g：1 LSB = 1/4096 g = 9.80665/4096 m/s²
      */
@@ -398,9 +395,9 @@ BMI270_Status_e BMI270_Init(void)
 
     /*
      * 陀螺仪灵敏度：
-     *   ±2000dps → 16.4 LSB/dps → 1 LSB = 2000/32768 dps
-     *   ±1000dps → 32.8 LSB/dps
-     *   ...
+     * ±2000dps → 16.4 LSB/dps → 1 LSB = 2000/32768 dps
+     * ±1000dps → 32.8 LSB/dps
+     * ...
      */
     bmi270.gyro_sensitivity = (2000.0f / 32768.0f) * DEG_TO_RAD;
 
@@ -408,9 +405,9 @@ BMI270_Status_e BMI270_Init(void)
 
     /*
      * 从 ACC_X_LSB (0x0C) 开始连续读：
-     *   0x0C~0x17: 12B (6轴数据)
-     *   0x18~0x1A: 3B  (sensortime)
-     *   共 15 字节数据
+     * 0x0C~0x17: 12B (6轴数据)
+     * 0x18~0x1A: 3B  (sensortime)
+     * 共 15 字节数据
      *
      * SPI 帧 = 1(addr) + 1(dummy) + 15(data) = 17 字节
      */
@@ -420,7 +417,7 @@ BMI270_Status_e BMI270_Init(void)
     /* 初始化双缓冲 */
     bmi270.buf_write_idx = 0;
     bmi270.dma_state     = BMI270_DMA_IDLE;
-    bmi270.data_lock.sequence = 0;
+    SeqLock_Init(&bmi270.data_lock);
 
     /* ---- 等待传感器稳定 ---- */
     Bsp_Delay_ms(50);
@@ -441,9 +438,9 @@ BMI270_Instance_t *BMI270_GetInstance(void)
  * @brief DRDY 中断处理（PB7 EXTI 触发时调用）
  *
  * 数据流：
- *   DRDY 上升沿 → 检查 DMA 空闲 → 启动 DMA 全双工读取
- *     → DMA 完成后自动进入 BMI270_DMA_Callback
- *       → 切换缓冲区 → 序列锁保护下解析数据 → 标记空闲
+ * DRDY 上升沿 → 检查 DMA 空闲 → 启动 DMA 全双工读取
+ * → DMA 完成后自动进入 BMI270_DMA_Callback
+ * → 切换缓冲区 → 序列锁保护下解析数据 → 标记空闲
  */
 void BMI270_DRDY_Handler(void)
 {
@@ -477,9 +474,9 @@ void BMI270_DRDY_Handler(void)
  * @brief 获取最新 IMU 数据（序列锁保护）
  *
  * 使用序列锁而非关中断的优势：
- *   - 中断写数据时零等待，不影响 DRDY 响应延迟
- *   - 读者（主循环）最多重试几次，不会拿到"半新半旧"的脏数据
- *   - 整个过程无需关中断，系统实时性不受影响
+ * - 中断写数据时零等待，不影响 DRDY 响应延迟
+ * - 读者（主循环）最多重试几次，不会拿到"半新半旧"的脏数据
+ * - 整个过程无需关中断，系统实时性不受影响
  *
  * @param  data 输出指针
  * @retval 1=成功, 0=失败（无数据或超过重试次数）
@@ -500,13 +497,13 @@ uint8_t BMI270_GetData(BMI270_Data_t *data)
     /*
      * 序列锁读取流程：
      *
-     *   1. 读取 sequence（如果是奇数，说明写者正在写，自旋等待）
-     *   2. 拷贝数据
-     *   3. 再次检查 sequence 是否变化
-     *   4. 如果变化了，说明读取期间被写者打断，数据不一致，重试
-     *   5. 如果没变化，数据一致，返回成功
+     * 1. 读取 sequence（如果是奇数，说明写者正在写，自旋等待）
+     * 2. 拷贝数据
+     * 3. 再次检查 sequence 是否变化
+     * 4. 如果变化了，说明读取期间被写者打断，数据不一致，重试
+     * 5. 如果没变化，数据一致，返回成功
      */
-    for (uint8_t retry = 0; retry < SEQLOCK_MAX_RETRY; retry++)
+    for (uint8_t retry = 0; retry < BMI270_SEQLOCK_MAX_RETRY; retry++)
     {
         uint32_t seq = SeqLock_ReadBegin(&bmi270.data_lock);
 

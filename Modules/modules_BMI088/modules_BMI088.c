@@ -7,7 +7,7 @@
 #include <string.h>
 
 #include "bsp_timestamp.h"
-#include "memory_section.h"
+#include "bsp_memory_section.h"
 #include "user_math.h"
 
 /* ===================== 全局唯一实例 ===================== */

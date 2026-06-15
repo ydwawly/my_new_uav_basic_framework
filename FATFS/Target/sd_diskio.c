@@ -32,7 +32,7 @@
 #include <stdio.h>
 
 /* Private typedef -----------------------------------------------------------*/
-#include "memory_section.h"
+#include "bsp_memory_section.h"
 /* Private define ------------------------------------------------------------*/
 
 #define QUEUE_SIZE         (uint32_t) 10
