@@ -1,152 +1,239 @@
 //
 // Created by Administrator on 2026/6/15.
 //
-
 #include "modules_mtf02.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "usart.h"
-#include "bsp_utils_seqlock.h"
 #include <string.h>
-
 #include "bsp_RTT.h"
 #include "bsp_timestamp.h"
-#include "bsp_uart.h"
+#include "bsp_utils_seqlock.h"
+#include "usart.h"
 
+/* ========================== 全局静态实例 ========================== */
 
-/* ========================== 私有变量 ========================== */
-
-static USARTInstance *mtf02_instance;
-static MTF02_Data_t   mtf02_data;
-
-/* 序列锁与共享内存区 */
-static uint8_t shared_mtf02_frame[MTF02_FRAME_SIZE];
-static uint32_t shared_timestamp_cyc = 0;
+static MTF02_Instance_t mtf02_instance;
 
 /* ========================== 私有函数声明 ========================== */
 
-static void MTF02_Rx_Callback(uint8_t *buf, uint16_t len);
-static void MTF02_Decode(const uint8_t *buf, uint32_t timestamp_cyc);
+static uint8_t MTF02_Checksum(const uint8_t *buf);
+static uint16_t MTF02_ReadU16LE(const uint8_t *p);
+static int16_t MTF02_ReadS16LE(const uint8_t *p);
+static uint32_t MTF02_ReadU32LE(const uint8_t *p);
+static void MTF02_ParseRawFrame(const uint8_t *buf, MTF02_Data_t *out);
+static void MTF02_UART_EventCallback(USARTInstance *ins,USART_Event_e event,uint8_t *data_ptr,uint16_t data_len);
 
-/* ========================== 函数实现 ========================== */
+/* ========================== 私有函数实现 ========================== */
 
-void MTF02_Init(void)
+static uint8_t MTF02_Checksum(const uint8_t *buf)
+{
+    uint8_t sum = 0U;
+    uint8_t i;
+
+    for (i = 0U; i < (MTF02_FRAME_LEN - 1U); i++)
+    {
+        sum += buf[i];
+    }
+    return sum;
+}
+
+static uint16_t MTF02_ReadU16LE(const uint8_t *p)
+{
+    return (uint16_t)((uint16_t)p[0] |
+                     ((uint16_t)p[1] << 8));
+}
+
+static int16_t MTF02_ReadS16LE(const uint8_t *p)
+{
+    return (int16_t)MTF02_ReadU16LE(p);
+}
+
+static uint32_t MTF02_ReadU32LE(const uint8_t *p)
+{
+    return ((uint32_t)p[0]      ) |
+           ((uint32_t)p[1] <<  8) |
+           ((uint32_t)p[2] << 16) |
+           ((uint32_t)p[3] << 24);
+}
+
+static void MTF02_ParseRawFrame(const uint8_t *buf, MTF02_Data_t *out)
+{
+    out->dev_id  = buf[MTF02_IDX_DEV_ID];
+    out->sys_id  = buf[MTF02_IDX_SYS_ID];
+    out->msg_id  = buf[MTF02_IDX_MSG_ID];
+    out->seq     = buf[MTF02_IDX_SEQ];
+
+    out->sensor_time_ms = MTF02_ReadU32LE(&buf[MTF02_IDX_PAYLOAD + MTF02_PL_TIME_MS]);
+    out->distance_mm    = MTF02_ReadU32LE(&buf[MTF02_IDX_PAYLOAD + MTF02_PL_DISTANCE]);
+
+    out->strength       = buf[MTF02_IDX_PAYLOAD + MTF02_PL_STRENGTH];
+    out->precision      = buf[MTF02_IDX_PAYLOAD + MTF02_PL_PRECISION];
+    out->tof_status     = buf[MTF02_IDX_PAYLOAD + MTF02_PL_TOF_STATUS];
+
+    out->flow_vel_x     = MTF02_ReadS16LE(&buf[MTF02_IDX_PAYLOAD + MTF02_PL_FLOW_VEL_X]);
+    out->flow_vel_y     = MTF02_ReadS16LE(&buf[MTF02_IDX_PAYLOAD + MTF02_PL_FLOW_VEL_Y]);
+    out->flow_quality   = buf[MTF02_IDX_PAYLOAD + MTF02_PL_FLOW_QUALITY];
+    out->flow_status    = buf[MTF02_IDX_PAYLOAD + MTF02_PL_FLOW_STATUS];
+}
+
+/* ========================== 串口事件回调（内部私有） ========================== */
+
+static void MTF02_UART_EventCallback(USARTInstance *ins,USART_Event_e event,uint8_t *data_ptr,uint16_t data_len)
+{
+    (void)ins;
+
+    switch (event)
+    {
+    case USART_EVENT_RX_CPLT:
+        if (data_ptr == NULL || data_len == 0U)
+        {
+            return;
+        }
+
+        SeqLock_WriteBegin(&mtf02_instance.data_lock);
+
+        mtf02_instance.raw_len = (data_len > MTF02_FRAME_LEN) ? MTF02_FRAME_LEN : data_len;
+        memcpy(mtf02_instance.raw_rx_buf, data_ptr, mtf02_instance.raw_len);
+        mtf02_instance.capture_timestamp = Bsp_Timestamp_us_Get();
+        mtf02_instance.rx_frame_count++;
+
+        SeqLock_WriteEnd(&mtf02_instance.data_lock);
+        break;
+
+    case USART_EVENT_ERROR:
+        mtf02_instance.rx_err_count++;
+        break;
+
+    case USART_EVENT_TX_CPLT:
+    default:
+        break;
+    }
+}
+
+/* ========================== 任务级处理 ========================== */
+
+uint8_t MTF02_Task_Handler(void)
+{
+    uint32_t start_seq;
+    uint32_t frame_count;
+    uint16_t raw_len;
+    uint64_t timestamp;
+    uint8_t  local_buf[MTF02_FRAME_LEN];
+    uint8_t  checksum;
+    uint8_t  retry;
+    MTF02_Data_t data = {0};
+
+    if (mtf02_instance.publisher == NULL)
+    {
+        return 0U;
+    }
+
+    for (retry = 0U; retry < MTF02_SEQLOCK_MAX_RETRY; retry++)
+    {
+        /* ---------- 在序列锁保护下获取稳定快照 ---------- */
+        start_seq = SeqLock_ReadBegin(&mtf02_instance.data_lock);
+
+        frame_count = mtf02_instance.rx_frame_count;
+        raw_len     = mtf02_instance.raw_len;
+        timestamp   = mtf02_instance.capture_timestamp;
+
+        if (raw_len > MTF02_FRAME_LEN)
+        {
+            raw_len = MTF02_FRAME_LEN;
+        }
+
+        if (raw_len > 0U)
+        {
+            memcpy(local_buf, mtf02_instance.raw_rx_buf, raw_len);
+        }
+
+        if (SeqLock_ReadRetry(&mtf02_instance.data_lock, start_seq))
+        {
+            continue;
+        }
+
+        /* ========================================================
+         * 快照一致，后续全部基于本地数据处理
+         * ======================================================== */
+
+        /* ---- 1. 是否有新帧需要处理 ---- */
+        if ((frame_count == 0U) ||
+            (frame_count == mtf02_instance.last_seen_frame_count))
+        {
+            return 0U;
+        }
+
+        /*
+         * 走到这里说明有新帧，无论后面解析成功还是失败，
+         * 都要标记"已看过这帧"，防止同一个坏帧被反复重试。
+         *
+         * 但 last_proc_frame_count 只在成功发布后才更新。
+         */
+        mtf02_instance.last_seen_frame_count = frame_count;
+
+        /* ---- 2. 帧长度检查 ---- */
+        if (raw_len != MTF02_FRAME_LEN)
+        {
+            mtf02_instance.parse_err_count++;
+            return 0U;
+        }
+
+        /* ---- 3. 帧头 / 消息ID / 负载长度检查 ---- */
+        if ((local_buf[MTF02_IDX_HEAD]   != MTF02_MSG_HEAD) ||
+            (local_buf[MTF02_IDX_MSG_ID] != MTF02_MSG_ID_RANGE_SENSOR) ||
+            (local_buf[MTF02_IDX_LEN]    != MTF02_PAYLOAD_LEN))
+        {
+            mtf02_instance.parse_err_count++;
+            return 0U;
+        }
+
+        /* ---- 4. 校验和检查 ---- */
+        checksum = MTF02_Checksum(local_buf);
+        if (checksum != local_buf[MTF02_IDX_CHECKSUM])
+        {
+            mtf02_instance.parse_err_count++;
+            return 0U;
+        }
+
+        /* ---- 5. 解析并发布 ---- */
+        MTF02_ParseRawFrame(local_buf, &data);
+        data.Mtf02_Timestamp = timestamp;
+
+        mtf02_instance.last_proc_frame_count = frame_count;
+        PubPushMessage(mtf02_instance.publisher, &data);
+        return 1U;
+    }
+
+    return 0U;
+}
+
+/* ========================== 初始化 ========================== */
+
+uint8_t MTF02_Init(void)
 {
     USART_Init_Config_s config;
 
-    // 初始化序列锁
-    SeqLock_Init(&mtf02_data.data_lock);
+    memset(&mtf02_instance, 0, sizeof(MTF02_Instance_t));
+    SeqLock_Init(&mtf02_instance.data_lock);
 
-    // 配置串口接收，长度严格固定为 27 字节
-    config.usart_handle = &huart2; // 请修改为你实际使用的串口句柄
-    config.recv_buff_size = MTF02_FRAME_SIZE;
-    config.module_callback = MTF02_Rx_Callback;
-    config.rx_mode = USART_RX_MODE_NORMAL; // 正常模式，触发 IDLE 或 TC 都可以
-
-    mtf02_instance = USARTRegister(&config);
-    (void)mtf02_instance;
-
-    RTTINFO("[MTF02] MTF02 Optical Flow Init Success !");
-}
-
-/**
- * @brief 串口接收回调 (ISR上下文)
- */
-static void MTF02_Rx_Callback(uint8_t *buf, uint16_t len)
-{
-    BaseType_t xWoken = pdFALSE;
-
-    // 严格过滤：只有刚好拿到 27 字节才处理，防错位
-    if (len != MTF02_FRAME_SIZE || buf == NULL) {
-        return;
-    }
-
-    /* 序列锁：写操作 */
-    SeqLock_WriteBegin(&mtf02_data.data_lock);
+    mtf02_instance.publisher = PubRegister(MTF02_TOPIC_NAME, sizeof(MTF02_Data_t));
+    if (mtf02_instance.publisher == NULL)
     {
-        memcpy(shared_mtf02_frame, buf, MTF02_FRAME_SIZE);
+        RTTERROR("[MTF02] PubRegister Failed!");
+        return 0U;
     }
-    SeqLock_WriteEnd(&mtf02_data.data_lock);
 
-}
+    memset(&config, 0, sizeof(config));
+    config.usart_handle   = &huart4;
+    config.recv_buff_size = MTF02_FRAME_LEN;
+    config.event_callback = MTF02_UART_EventCallback;
+    config.rx_mode        = USART_RX_MODE_NORMAL;
 
-/**
- * @brief 在 SensorHub 任务中被调用进行数据提取
- */
-void MTF02_Task_Handler(void)
-{
-    static uint32_t last_handled_seq = 0;
-    uint8_t local_frame[MTF02_FRAME_SIZE];
-    uint32_t local_timestamp_cyc = 0;
-    uint32_t seq = 0;
-    uint8_t read_success = 0;
-
-    /* 序列锁：读操作 */
-    for (uint8_t retry = 0; retry < MTF02_SEQLOCK_RETRY; retry++)
+    mtf02_instance.usart_instance = USARTRegister(&config);
+    if (mtf02_instance.usart_instance == NULL)
     {
-        seq = SeqLock_ReadBegin(&mtf02_data.data_lock);
-
-        memcpy(local_frame, shared_mtf02_frame, MTF02_FRAME_SIZE);
-        local_timestamp_cyc = shared_timestamp_cyc;
-
-        if (!SeqLock_ReadRetry(&mtf02_data.data_lock, seq))
-        {
-            read_success = 1;
-            break; // 读取期间未被打断，数据一致
-        }
+        RTTERROR("[MTF02] UART Register Failed!");
+        return 0U;
     }
 
-    // 如果多次重试均失败（极少发生），直接退出等下一次调度
-    if (!read_success) {
-        return;
-    }
-
-    // 防重处理与有效性检查（利用 seq 作为数据版本号校验）
-    if (seq == 0U || seq == last_handled_seq || local_timestamp_cyc == 0U) {
-        return;
-    }
-
-    last_handled_seq = seq;
-}
-
-/**
- * @brief 数据解包与校验
- */
-static void MTF02_Decode(const uint8_t *buf, uint32_t timestamp_cyc)
-{
-    uint8_t checksum = 0;
-
-    if (buf == NULL || timestamp_cyc == 0U) {
-        return;
-    }
-
-    // 1. 检查帧头和消息ID：帧头 0xEF, 设备ID 0x0F, 系统ID 0x00, 消息ID 0x51
-    if (buf[0] != 0xEF || buf[1] != 0x0F || buf[2] != 0x00 || buf[3] != 0x51) {
-        return;
-    }
-
-    // 2. 校验和计算 (前面 26 个字节之和)
-    for (uint8_t i = 0; i < (MTF02_FRAME_SIZE - 1); i++) {
-        checksum += buf[i];
-    }
-
-    // 如果校验不通过则直接丢弃
-    if (checksum != buf[MTF02_FRAME_SIZE - 1]) {
-        return;
-    }
-
-    // 3. 数据提取：直接把第 6 字节开始的数据拷贝进结构体
-    // buf[6] 是 Payload 起始位置
-    memcpy(&mtf02_data.payload, &buf[6], sizeof(MTF02_Payload_t));
-
-    // 4. 评估数据可用性
-    if (mtf02_data.payload.tof_status == 1 && mtf02_data.payload.flow_status == 1) {
-        mtf02_data.is_valid = 1U;
-    } else {
-        mtf02_data.is_valid = 0U;
-    }
-
-    // 5. 更新系统时间戳与发布机制
-    mtf02_data.timestamp_us = Bsp_Timestamp_us_Get();
-
+    RTTINFO("[MTF02] MTF02 Optical Flow Init Success!");
+    return 1U;
 }
