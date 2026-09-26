@@ -8,6 +8,8 @@
 - 导入的是正式工程当时的最新工作区快照；原正式代码目录未修改。
 - Bootloader、上位机、旧固件、IDE 缓存、调试器配置和原始性能抓取不在本仓库范围内。
 
+整理前的本地正式工程以 Git 提交 `e00125b371f0355d051bce6377a03291b18d6d2c` 为基底，并包含未提交工作区修改。对排除 Git/IDE/构建目录后的 857 个 C/C++/汇编、链接脚本、IOC、CMake 和 Python 源文件，按相对路径排序生成“单文件 SHA-256 + 两个空格 + 相对路径 + LF”的清单；该清单的 SHA-256 为 `978cfc09aeaab9ec011543269222c01cf29c23f5c88ee6f7c91650bb6a1567a9`。候选仓库的首次导入与性能探针清理保存在提交 `b533fbe`，可用于审计后续差异。
+
 ## 基线
 
 整理前基线可完成 ARM Debug 构建，但质量门禁中 4/11 项测试因测试契约落后于现行实现而失败：MTF02 仍按旧 ISR 解析方式断言、VQF 测试依赖仓库外上位机、控制测试检查旧状态机、SPI 主机桩缺少 CMSIS 内建函数。测试已改为验证当前正式行为，没有借此修改控制算法。
@@ -19,11 +21,12 @@
 | Debug + 质量门禁 | 通过 |
 | 11 项主机回归 | 11/11 通过 |
 | clang-format dry-run | 通过 |
-| Release 构建 | 待最终矩阵执行 |
-| RelWithDebInfo / SystemView OFF | 待最终矩阵执行 |
-| RelWithDebInfo / SystemView ON | 待最终矩阵执行 |
-| `git diff --check` | 待最终扫描 |
-| 路径、序列号和旧符号扫描 | 待最终扫描 |
+| Release / SystemView OFF | 通过 |
+| RelWithDebInfo / SystemView ON | 通过 |
+| `git diff --check` | 通过 |
+| 路径、序列号和旧符号扫描 | 通过 |
+
+Release 与 RelWithDebInfo 构建均出现第三方 FatFs R0.12c 在 GCC 13.3.1 `-Ofast` 下的 `gen_numname` 静态分析警告；链接成功，自有代码无新增编译错误。本轮不直接修改第三方 FatFs，后续应单独评估升级或上游补丁。
 
 ## 硬件无桨回归
 
