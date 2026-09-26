@@ -10,7 +10,7 @@
  * 接收机原始量程。解析与发布均在独立 FreeRTOS 任务中完成。
  */
 
-#include "mudules_Sbus.h"
+#include "modules_Sbus.h"
 #include "modules_Message_center.h"
 #include "bsp_RTT.h"
 #include "task.h"

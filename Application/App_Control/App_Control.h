@@ -1,10 +1,10 @@
 /**
- * @file App_Controll.h
+ * @file App_Control.h
  * @brief 四旋翼姿态、角速度与定高控制模块
  */
 
-#ifndef APP_CONTROLL_H
-#define APP_CONTROLL_H
+#ifndef APP_CONTROL_H
+#define APP_CONTROL_H
 
 #include <stdint.h>
 
@@ -194,4 +194,4 @@ void Control_SetFeedback(const Control_Feedback_t *feedback);
 /* 姿态更新事件驱动的主控制任务；超时唤醒仅检查失联、上锁等安全条件。 */
 void Control_Task(void *argument);
 
-#endif /* APP_CONTROLL_H */
+#endif /* APP_CONTROL_H */

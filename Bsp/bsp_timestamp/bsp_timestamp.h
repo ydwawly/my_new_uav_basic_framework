@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/8.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_TIMESTAMP_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_TIMESTAMP_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_TIMESTAMP_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_TIMESTAMP_H
 
 #include <stdint.h>
 #include "stm32h7xx_hal.h"
@@ -62,4 +62,4 @@ float Bsp_DWT_Get_DeltaT(uint32_t *last_cycle);
  */
 void Bsp_Timestamp_Update(void);
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_TIMESTAMP_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_TIMESTAMP_H */

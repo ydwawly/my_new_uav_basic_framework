@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/15.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_UART_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_UART_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UART_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UART_H
 
 #include "main.h"
 #include "stm32h7xx_hal_uart.h"
@@ -149,4 +149,4 @@ void USARTSend(USARTInstance *instance, uint8_t *send_buf, uint16_t send_size, U
  */
 uint8_t USARTIsTransmitReady(USARTInstance *instance);
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_UART_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UART_H */

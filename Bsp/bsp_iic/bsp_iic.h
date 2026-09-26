@@ -2,8 +2,8 @@
  * @file bsp_iic.h
  * @brief 支持多设备共享总线的 I²C 阻塞、中断和 DMA 访问接口
  */
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_IIC_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_IIC_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_IIC_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_IIC_H
 
 #include <stdint.h>
 
@@ -78,4 +78,4 @@ HAL_StatusTypeDef IICMemWrite(IICInstance *instance, uint16_t memory_address,
 HAL_StatusTypeDef IICMemRead(IICInstance *instance, uint16_t memory_address,
                              IIC_MemoryAddressSize_e memory_address_size, uint8_t *data, uint16_t size);
 
-#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_BSP_IIC_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_IIC_H */

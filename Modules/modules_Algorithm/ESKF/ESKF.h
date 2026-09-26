@@ -3,8 +3,8 @@
 // Refactored with Aerospace-Grade Comments & Formatting.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_ESKF_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_ESKF_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_ESKF_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_ESKF_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -356,4 +356,4 @@ void NAV_ESKF_GetEulerRad(const NavESKF *eskf, float32_t *roll, float32_t *pitch
 #ifdef __cplusplus
 }
 #endif
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_ESKF_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_ESKF_H */

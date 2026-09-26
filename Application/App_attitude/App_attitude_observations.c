@@ -26,7 +26,7 @@
 
 /* 测距融合总开关：为 1 才订阅并处理 TFmini Plus */
 #if (ATTITUDE_ENABLE_RANGE == 1U)
-#include "mudules_TFmini_Plus.h"
+#include "modules_TFmini_Plus.h"
 #endif
 
 /* 最外层条件：必须同时满足

@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/15.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_UTILS_SEQLOCK_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_UTILS_SEQLOCK_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UTILS_SEQLOCK_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UTILS_SEQLOCK_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -87,4 +87,4 @@ static inline uint32_t SeqLock_TryReadBegin(const SeqLock_t *lock)
     return seq;
 }
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_UTILS_SEQLOCK_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UTILS_SEQLOCK_H */

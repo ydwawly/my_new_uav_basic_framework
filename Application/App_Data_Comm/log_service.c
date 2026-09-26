@@ -8,7 +8,7 @@
  * 的 LOG_REQUEST_* 消息转交 SD 卡任务，并将异步响应编码回 MAVLink 发送队列。
  */
 
-#include "App_Controll.h"
+#include "App_Control.h"
 #include "DataRouterTask.h"
 #include "modules_Message_center.h"
 #include "modules_SD_Card.h"

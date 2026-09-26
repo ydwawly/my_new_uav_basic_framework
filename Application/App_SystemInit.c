@@ -5,7 +5,7 @@
 
 #include "App_SystemInit.h"
 
-#include "App_Controll.h"
+#include "App_Control.h"
 #include "App_Data_Comm.h"
 #include "App_Sensor.h"
 #include "App_TaskPriorities.h"

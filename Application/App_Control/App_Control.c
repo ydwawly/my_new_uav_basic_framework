@@ -1,9 +1,9 @@
 /**
- * @file App_Controll.c
+ * @file App_Control.c
  * @brief 四旋翼姿态、角速度与定高控制
  */
 
-#include "App_Controll.h"
+#include "App_Control.h"
 
 #include "bsp_RTT.h"
 #include "bsp_timestamp.h"

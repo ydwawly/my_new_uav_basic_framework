@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/20.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_USB_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_USB_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_USB_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_USB_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -134,4 +134,4 @@ void USB_CDC_TxCpltHook(void);
 #ifdef __cplusplus
 }
 #endif
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_USB_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_USB_H */

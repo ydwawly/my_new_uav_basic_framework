@@ -15,7 +15,7 @@
 #include "App_attitude.h"
 #include "App_attitude_internal.h"
 #include "App_attitude_observations.h" /* 光流/测距外部观测更新 */
-#include "App_Controll.h"              /* 向控制任务发布 Control_Feedback */
+#include "App_Control.h"               /* 向控制任务发布 Control_Feedback */
 #include <math.h>
 #include <string.h>
 

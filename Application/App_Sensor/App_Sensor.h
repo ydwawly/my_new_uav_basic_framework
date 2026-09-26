@@ -3,8 +3,8 @@
  * @brief 传感器汇聚模块公共接口
  */
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_APP_SENSOR_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_APP_SENSOR_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_APP_SENSOR_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_APP_SENSOR_H
 
 #include <stdint.h>
 
@@ -65,4 +65,4 @@ uint8_t SensorHub_Init(void);
  */
 void SensorHub_Task(void *pv_parameters);
 
-#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_APP_SENSOR_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_APP_SENSOR_H */

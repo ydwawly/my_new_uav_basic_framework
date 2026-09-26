@@ -2,7 +2,7 @@
 // Created by Administrator on 2026/6/18.
 //
 
-#include "mudules_TFmini_Plus.h"
+#include "modules_TFmini_Plus.h"
 #include <string.h>
 #include "bsp_RTT.h"
 #include "bsp_timestamp.h"

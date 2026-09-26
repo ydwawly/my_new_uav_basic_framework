@@ -6,8 +6,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-HEADER = (ROOT / "Application/App_Controll/App_Controll.h").read_text(encoding="utf-8")
-SOURCE = (ROOT / "Application/App_Controll/App_Controll.c").read_text(encoding="utf-8")
+HEADER = (ROOT / "Application/App_Control/App_Control.h").read_text(encoding="utf-8")
+SOURCE = (ROOT / "Application/App_Control/App_Control.c").read_text(encoding="utf-8")
 CMAKE = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
 ATTITUDE_HEADER = (ROOT / "Application/App_attitude/App_attitude.h").read_text(encoding="utf-8")
 ATTITUDE_CONFIG = (ROOT / "Application/App_attitude/App_attitude_config.h").read_text(encoding="utf-8")

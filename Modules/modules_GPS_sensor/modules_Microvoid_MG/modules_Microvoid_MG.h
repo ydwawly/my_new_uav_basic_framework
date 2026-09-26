@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/18.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_MUDULES_MICROVOID_MG_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_MUDULES_MICROVOID_MG_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_MICROVOID_MG_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_MICROVOID_MG_H
 
 #include <stdint.h>
 #include "bsp_uart.h"
@@ -241,4 +241,4 @@ uint8_t GPS_Init(void);
  *       即使一帧跨越多次 IDLE 触发也能正确处理
  */
 uint8_t GPS_Task_Handler(void);
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_MUDULES_MICROVOID_MG_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_MICROVOID_MG_H */

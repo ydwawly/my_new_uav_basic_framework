@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/9.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_RTT_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_RTT_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RTT_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RTT_H
 
 #include "SEGGER_RTT.h"
 #include "SEGGER_RTT_Conf.h"
@@ -77,4 +77,4 @@ int Print_RTT(const char *fmt, ...);
  */
 int Float2Str(char *str, size_t len, float va);
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_RTT_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RTT_H */

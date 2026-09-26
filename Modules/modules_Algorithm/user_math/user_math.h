@@ -6,8 +6,8 @@
  * 坐标旋转等基础数学。所有函数均无动态内存、无静态可变状态，可在任务中重入调用。
  */
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_USER_MATH_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_USER_MATH_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_USER_MATH_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_USER_MATH_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -97,4 +97,4 @@ uint16_t Math_Crc16Ccitt(const void *data, uint32_t length, uint16_t initial_val
  */
 float Math_PressureToAltitude(float pressure_pa, float sea_level_pressure_pa);
 
-#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_USER_MATH_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_USER_MATH_H */

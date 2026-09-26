@@ -3,8 +3,8 @@
  * @brief MAVLink 发送队列、周期服务调度与黑匣子数据入口
  */
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_DATA_ROUTER_TASK_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_DATA_ROUTER_TASK_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_DATA_ROUTER_TASK_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_DATA_ROUTER_TASK_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -189,4 +189,4 @@ void DataRouterTask(void *argument);
 }
 #endif
 
-#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_DATA_ROUTER_TASK_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_DATA_ROUTER_TASK_H */

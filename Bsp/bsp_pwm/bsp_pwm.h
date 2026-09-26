@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/7/26.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_PWM_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_PWM_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_PWM_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_PWM_H
 
 #include "stm32h7xx_hal.h"
 #include <stdint.h>
@@ -224,4 +224,4 @@ uint8_t PWMIsStarted(const PWMInstance *instance);
  */
 void PWMEmergencyStopAll(void);
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_PWM_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_PWM_H */

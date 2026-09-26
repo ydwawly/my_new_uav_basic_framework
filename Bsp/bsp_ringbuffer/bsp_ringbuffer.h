@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/9.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_RINGBUFFER_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_RINGBUFFER_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RINGBUFFER_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RINGBUFFER_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -77,4 +77,4 @@ bool RingBuffer_Push(RingBuffer_t *rb, const void *data, uint32_t len);
  */
 uint32_t RingBuffer_Pop(RingBuffer_t *rb, void *out_data, uint32_t max_len);
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_RINGBUFFER_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RINGBUFFER_H */

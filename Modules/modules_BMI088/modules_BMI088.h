@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/14.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_BMI088_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_BMI088_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI088_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI088_H
 
 #include "bsp_spi.h"
 #include "modules_BMI088_reg.h"
@@ -245,4 +245,4 @@ void BMI088_ACCEL_DRDY_Handler(void);
 
 void BMI088_RegisterReadyTask(TaskHandle_t task_handle);
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_BMI088_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI088_H */

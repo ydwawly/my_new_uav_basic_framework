@@ -1,8 +1,8 @@
 //
 // Created by Administrator on 2026/6/14.
 //
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_BMI270_CONFIG_FILE_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_BMI270_CONFIG_FILE_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI270_CONFIG_FILE_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI270_CONFIG_FILE_H
 #include <stdint.h>
 /*
  * Copyright (c) 2021 Bosch Sensortec GmbH
@@ -468,4 +468,4 @@ const uint8_t bmi270_config_file[] = {
 
 const uint16_t bmi270_config_file_size = sizeof(bmi270_config_file);
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_BMI270_CONFIG_FILE_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI270_CONFIG_FILE_H */

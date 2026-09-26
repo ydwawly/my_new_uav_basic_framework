@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/15.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_MEMORY_SECTION_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_MEMORY_SECTION_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_MEMORY_SECTION_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_MEMORY_SECTION_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -46,4 +46,4 @@ void    BSP_DMA_ResetPool(void);
 size_t  BSP_DMA_GetFreeSize(void);
 uint8_t BSP_DMA_GetUsagePercent(void);
 
-#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_BSP_MEMORY_SECTION_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_MEMORY_SECTION_H */

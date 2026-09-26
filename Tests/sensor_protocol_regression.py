@@ -248,11 +248,11 @@ class SensorProtocolRegression(unittest.TestCase):
         self.assertAlmostEqual(struct.unpack_from("<i", payload, 64)[0] * 1e-5, 90.0)
 
     def test_uart_dma_modes_match_fixed_frame_drivers(self) -> None:
-        ioc = (PROJECT_ROOT / "my_new_uav_baice_framework.ioc").read_text(encoding="utf-8")
+        ioc = (PROJECT_ROOT / "stm32h743_uav_flight_controller.ioc").read_text(encoding="utf-8")
         uart_bsp = (PROJECT_ROOT / "Bsp/bsp_uart/bsp_uart.c").read_text(encoding="utf-8")
         sensor_header = (PROJECT_ROOT / "Application/App_Sensor/App_Sensor.h").read_text(encoding="utf-8")
         mtf02_driver = (
-            PROJECT_ROOT / "Modules/mudules_optical_flow_sensor/modules_mtf02/modules_mtf02.c"
+            PROJECT_ROOT / "Modules/modules_optical_flow_sensor/modules_mtf02/modules_mtf02.c"
         ).read_text(encoding="utf-8")
 
         self.assertIn("Dma.USART1_RX.8.Mode=DMA_NORMAL", ioc)
@@ -288,12 +288,12 @@ class SensorProtocolRegression(unittest.TestCase):
         self.assertTrue(isfinite(pressure_pa))
         self.assertTrue(isfinite(temperature_c))
 
-        ioc = (PROJECT_ROOT / "my_new_uav_baice_framework.ioc").read_text(encoding="utf-8")
+        ioc = (PROJECT_ROOT / "stm32h743_uav_flight_controller.ioc").read_text(encoding="utf-8")
         driver = (
-            PROJECT_ROOT / "Modules/mudules_altitude_sensor/modules_SPL06/modules_SPL06.c"
+            PROJECT_ROOT / "Modules/modules_altitude_sensor/modules_SPL06/modules_SPL06.c"
         ).read_text(encoding="utf-8")
         header = (
-            PROJECT_ROOT / "Modules/mudules_altitude_sensor/modules_SPL06/modules_SPL06.h"
+            PROJECT_ROOT / "Modules/modules_altitude_sensor/modules_SPL06/modules_SPL06.h"
         ).read_text(encoding="utf-8")
 
         self.assertIn("Dma.I2C2_RX.6.Instance=DMA2_Stream7", ioc)

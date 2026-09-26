@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/6/18.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_MUDULES_TFMINI_PLUS_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_MUDULES_TFMINI_PLUS_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_TFMINI_PLUS_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_TFMINI_PLUS_H
 
 #include <stdint.h>
 #include "usart.h"
@@ -143,4 +143,4 @@ uint8_t TFmini_Task_Handler(void);
 
 void Tfmini_RegisterReadyTask(TaskHandle_t task_handle);
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_MUDULES_TFMINI_PLUS_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_TFMINI_PLUS_H */

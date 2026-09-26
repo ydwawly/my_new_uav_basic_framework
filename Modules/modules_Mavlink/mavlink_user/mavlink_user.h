@@ -5,8 +5,8 @@
  * USB 接收中断只写入无锁环形缓冲区并通知解析任务；完整消息在任务上下文中分发。
  */
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_MAVLINK_USER_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_MAVLINK_USER_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MAVLINK_USER_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_MAVLINK_USER_H
 
 #include <stdbool.h>
 #include <stdint.h>

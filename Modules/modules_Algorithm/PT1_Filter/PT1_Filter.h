@@ -1,5 +1,5 @@
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_READABLE_PT1_FILTER_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_READABLE_PT1_FILTER_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_PT1_FILTER_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_PT1_FILTER_H
 
 /**
  * @file PT1_Filter.h
@@ -21,4 +21,4 @@ void PT1_Filter_Init(PT1_Filter_t *filter, float cutoff_freq_hz);
 /** @brief 输入采样值和实际周期 dt_s，返回本次滤波输出。 */
 float PT1_Filter_Apply(PT1_Filter_t *filter, float input, float dt_s);
 
-#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_READABLE_PT1_FILTER_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_PT1_FILTER_H */

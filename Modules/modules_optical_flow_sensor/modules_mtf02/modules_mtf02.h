@@ -3,8 +3,8 @@
  * @brief MTF-02 测距/光流模块的 MicoLink 与 MSPv2 双协议驱动
  */
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_MTF02_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_MTF02_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_MTF02_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_MTF02_H
 
 #include <stdint.h>
 
@@ -210,4 +210,4 @@ uint8_t MTF02_Init(void);
 uint8_t MTF02_Task_Handler(void);
 void    Mtf02_RegisterReadyTask(TaskHandle_t task_handle);
 
-#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_MTF02_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_MTF02_H */

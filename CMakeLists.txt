@@ -13,7 +13,7 @@ set(CMAKE_OBJCOPY arm-none-eabi-objcopy)
 set(CMAKE_OBJDUMP arm-none-eabi-objdump)
 set(SIZE arm-none-eabi-size)
 
-project(my_new_uav_baice_framework_v1 C CXX ASM)
+project(stm32h743_uav_flight_controller C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -146,18 +146,18 @@ include_directories(
         Modules/modules_Algorithm/ADRC
         Modules/modules_Algorithm/Filter
         Modules/modules_Algorithm/PT1_Filter
-        Modules/mudules_optical_flow_sensor/modules_mtf02
-        Modules/mudules_Remote_sensor/mudules_Sbus
-        Modules/mudules_GPS_sensor/mudules_Microvoid_MG
-        Modules/mudules_altitude_sensor/mudules_TFmini_Plus
-        Modules/mudules_altitude_sensor/modules_SPL06
+        Modules/modules_optical_flow_sensor/modules_mtf02
+        Modules/modules_Remote_sensor/modules_Sbus
+        Modules/modules_GPS_sensor/modules_Microvoid_MG
+        Modules/modules_altitude_sensor/modules_TFmini_Plus
+        Modules/modules_altitude_sensor/modules_SPL06
         Modules/modules_Mavlink/c_library_v2-master
         Modules/modules_Mavlink/mavlink_user
         Modules/modules_Motor/module_pwm_motor
         Application
         Application/DataRouterTask
         Application/App_Data_Comm
-        Application/App_Controll
+        Application/App_Control
         Application/App_Uav_Cmd
         Application/App_Sensor
         Application/App_attitude

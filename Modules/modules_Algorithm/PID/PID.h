@@ -2,8 +2,8 @@
 // Created by Administrator on 2026/7/21.
 //
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_PID_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_PID_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_PID_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_PID_H
 
 #include "stdint.h"
 #include <math.h>
@@ -119,4 +119,4 @@ void PIDInit(PIDInstance *pid, const PID_Init_Config_s *config);
  */
 float PIDCalculate(PIDInstance *pid, float measure, float ref);
 
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_PID_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_PID_H */

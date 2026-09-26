@@ -2,7 +2,7 @@
 // Created by Administrator on 2026/6/18.
 //
 
-#include "mudules_Sbus.h"
+#include "modules_Sbus.h"
 #include <string.h>
 #include "bsp_RTT.h"
 #include "bsp_timestamp.h"

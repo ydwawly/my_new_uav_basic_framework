@@ -11,8 +11,8 @@
  * 5. HAL 完成回调到具体设备的路由。
  */
 
-#ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_SPI_H
-#define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_SPI_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_SPI_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_SPI_H
 
 #include <stdint.h>
 
@@ -151,4 +151,4 @@ HAL_StatusTypeDef SPITransRecv(SPIInstance *instance, const uint8_t *tx_data, ui
  */
 HAL_StatusTypeDef SPISetMode(SPIInstance *instance, SPI_TXRX_MODE_e mode);
 
-#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_BSP_SPI_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_BSP_SPI_H */
