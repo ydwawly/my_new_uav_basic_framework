@@ -1,19 +1,41 @@
-Build/
-cmake-build-*/
-.idea/
-**/__pycache__/
-*.pyc
-.mxproject
+# CMake/Ninja and firmware artifacts
+/build/
+/Build/
+/cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
 *.o
 *.d
-*.crf
-*.htm
-*.lnp
-*.axf
+*.a
 *.elf
 *.hex
 *.bin
 *.map
 *.lst
-my_bootloader-main/build/
-my_bootloader-main.zip
+*.axf
+*.crf
+*.lnp
+*.htm
+
+# IDE and local debugger state
+/.idea/
+/.vscode/
+/.vs/
+*.jlink
+*.jdebug
+*.SVDat
+*.launch
+.mxproject
+
+# Python/test caches
+**/__pycache__/
+*.py[cod]
+/.pytest_cache/
+/.coverage
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.swp
+*~

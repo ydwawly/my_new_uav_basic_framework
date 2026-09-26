@@ -1,0 +1,64 @@
+name: firmware-ci
+
+on:
+  push:
+    branches: [main, portfolio-release]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-and-host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc python3-pip
+          python3 -m pip install --user 'clang-format==23.1.0'
+      - name: Check formatting
+        shell: bash
+        run: |
+          mapfile -t files < <(find Application Bsp Modules -type f \( -name '*.c' -o -name '*.h' \) \
+            ! -path 'Modules/modules_Mavlink/c_library_v2-master/*' \
+            ! -path 'Modules/modules_Algorithm/VQF/*' \
+            ! -path 'Modules/modules_BMI270/modules_BMI270_config_file.h' | sort)
+          ~/.local/bin/clang-format --dry-run --Werror --style=file "${files[@]}"
+      - name: Run host regression suite
+        shell: bash
+        run: |
+          for test in Tests/*_regression.py Tests/code_quality_check.py; do
+            python3 "$test"
+          done
+
+  arm-firmware-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: debug
+            build_type: Debug
+            systemview: "OFF"
+          - name: release
+            build_type: Release
+            systemview: "OFF"
+          - name: systemview
+            build_type: RelWithDebInfo
+            systemview: "ON"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ARM toolchain and Ninja
+        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi ninja-build python3-pip
+      - name: Install CMake 4
+        run: python3 -m pip install --user 'cmake>=4,<5'
+      - name: Configure
+        run: >-
+          ~/.local/bin/cmake -S . -B build/${{ matrix.name }} -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DUAV_ENABLE_QUALITY_GATE=OFF
+          -DUAV_SYSTEMVIEW_AUTOSTART=${{ matrix.systemview }}
+      - name: Build firmware
+        run: ~/.local/bin/cmake --build build/${{ matrix.name }} --parallel 2
