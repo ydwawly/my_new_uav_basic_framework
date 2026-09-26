@@ -10,6 +10,13 @@ static volatile uint32_t time_overflow_count = 0;
 
 void Bsp_Timestamp_Init(void)
 {
+    /*
+     * 调试器停核时同步冻结 TIM2/TIM17。否则 Cortex-M7 已停止而 TIM2 仍计时，
+     * 重新运行后的第一笔传感器中断会被误判为十几毫秒的超长响应时间。
+     */
+    __HAL_DBGMCU_FREEZE_TIM2();
+    __HAL_DBGMCU_FREEZE_TIM17();
+
     //清除由于初始化(UG位置位)而残留的更新中断标志
     __HAL_TIM_CLEAR_IT(&htim2, TIM_IT_UPDATE);
     // 1. 启动 TIM2 并开启溢出中断 (大约每 71.5 分钟溢出一次)
@@ -39,14 +46,13 @@ uint64_t Bsp_Timestamp_us_Get(void)
     do
     {
         high1 = time_overflow_count;
-        low = TIM2->CNT;              // 直接读取底层寄存器，速度极快
+        low   = TIM2->CNT; // 直接读取底层寄存器，速度极快
         high2 = time_overflow_count;
-    } while (high1 != high2);         // 如果前后高位不一致，说明读取期间被溢出中断打断，重读
+    } while (high1 != high2); // 如果前后高位不一致，说明读取期间被溢出中断打断，重读
 
     // 将高 32 位左移，并与低 32 位进行按位或操作，拼接成完整的 64 位时间戳
     return ((uint64_t)high1 << 32) | low;
 }
-
 
 uint64_t Bsp_Timestamp_ms_Get(void)
 {
@@ -54,7 +60,6 @@ uint64_t Bsp_Timestamp_ms_Get(void)
     // 注意：整数除法比较耗时，仅在需要 ms 级时间戳的低频任务中使用
     return Bsp_Timestamp_us_Get() / 1000ULL;
 }
-
 
 void Bsp_Delay_us(uint32_t us)
 {
@@ -71,7 +76,6 @@ void Bsp_Delay_ms(uint32_t ms)
 {
     Bsp_Delay_us(ms * 1000);
 }
-
 
 uint32_t Bsp_DWT_Get_Cycle(void)
 {

@@ -11,16 +11,15 @@
 static GPS_Instance_t gps_instance;
 /* ========================== 私有函数声明 ========================== */
 
-static void GPS_UART_EventCallback(USARTInstance *ins, USART_Event_e event,uint8_t *data_ptr, uint16_t data_len);
+static void    GPS_UART_EventCallback(USARTInstance *ins, USART_Event_e event, uint8_t *data_ptr, uint16_t data_len);
 static uint8_t UBX_ParseByte(UBX_Parser_t *parser, uint8_t byte);
-static void UBX_ParserReset(UBX_Parser_t *parser);
-static void GPS_ConvertPVT(const UBX_NAV_PVT_Payload_t *pvt, GPS_Data_t *out);
-static void GPS_SendUBX(uint8_t msg_class, uint8_t msg_id,
-                           const uint8_t *payload, uint16_t payload_len);
-static void GPS_CfgPort(uint32_t baudrate);
-static void GPS_CfgRate(uint16_t interval_ms);
-static void GPS_CfgNav5(void);
-static void GPS_EnableMessage(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
+static void    UBX_ParserReset(UBX_Parser_t *parser);
+static void    GPS_ConvertPVT(const UBX_NAV_PVT_Payload_t *pvt, GPS_Data_t *out);
+static void    GPS_SendUBX(uint8_t msg_class, uint8_t msg_id, const uint8_t *payload, uint16_t payload_len);
+static void    GPS_CfgPort(uint32_t baudrate);
+static void    GPS_CfgRate(uint16_t interval_ms);
+static void    GPS_CfgNav5(void);
+static void    GPS_EnableMessage(uint8_t msg_class, uint8_t msg_id, uint8_t rate);
 
 /* ========================== UBX 解析器实现 ========================== */
 
@@ -38,6 +37,8 @@ static void UBX_ParserReset(UBX_Parser_t *parser)
  *
  * @note  校验算法: Fletcher-8
  *        校验范围: class + id + length(2字节) + payload
+ * @note  每个case对应UBX帧的唯一接收阶段，函数有意保持完整状态机形式，
+ *        便于逐项核对同步字节、长度、载荷和两级校验状态。
  */
 static uint8_t UBX_ParseByte(UBX_Parser_t *parser, uint8_t byte)
 {
@@ -63,9 +64,9 @@ static uint8_t UBX_ParseByte(UBX_Parser_t *parser, uint8_t byte)
 
     case UBX_STATE_CLASS:
         parser->msg_class = byte;
-        parser->ck_a = byte;
-        parser->ck_b = byte;
-        parser->state = UBX_STATE_ID;
+        parser->ck_a      = byte;
+        parser->ck_b      = byte;
+        parser->state     = UBX_STATE_ID;
         break;
 
     case UBX_STATE_ID:
@@ -149,29 +150,29 @@ static void GPS_ConvertPVT(const UBX_NAV_PVT_Payload_t *pvt, GPS_Data_t *out)
     out->altitude_msl   = (float)pvt->hMSL * 0.001f;
     out->altitude_ellip = (float)pvt->height * 0.001f;
 
-    out->velN           = (float)pvt->velN * 0.001f;
-    out->velE           = (float)pvt->velE * 0.001f;
-    out->velD           = (float)pvt->velD * 0.001f;
-    out->ground_speed   = (float)pvt->gSpeed * 0.001f;
-    out->heading        = (float)pvt->headMot * 1e-5f;
+    out->velN         = (float)pvt->velN * 0.001f;
+    out->velE         = (float)pvt->velE * 0.001f;
+    out->velD         = (float)pvt->velD * 0.001f;
+    out->ground_speed = (float)pvt->gSpeed * 0.001f;
+    out->heading      = (float)pvt->headMot * 1e-5f;
 
-    out->hAcc           = (float)pvt->hAcc * 0.001f;
-    out->vAcc           = (float)pvt->vAcc * 0.001f;
-    out->sAcc           = (float)pvt->sAcc * 0.001f;
-    out->headAcc        = (float)pvt->headAcc * 1e-5f;
-    out->pDOP           = (float)pvt->pDOP * 0.01f;
+    out->hAcc    = (float)pvt->hAcc * 0.001f;
+    out->vAcc    = (float)pvt->vAcc * 0.001f;
+    out->sAcc    = (float)pvt->sAcc * 0.001f;
+    out->headAcc = (float)pvt->headAcc * 1e-5f;
+    out->pDOP    = (float)pvt->pDOP * 0.01f;
 
-    out->fix_type       = pvt->fixType;
-    out->num_sv         = pvt->numSV;
-    out->fix_flags      = pvt->flags;
+    out->fix_type  = pvt->fixType;
+    out->num_sv    = pvt->numSV;
+    out->fix_flags = pvt->flags;
 
-    out->year           = pvt->year;
-    out->month          = pvt->month;
-    out->day            = pvt->day;
-    out->hour           = pvt->hour;
-    out->min            = pvt->min;
-    out->sec            = pvt->sec;
-    out->time_valid     = pvt->valid;
+    out->year       = pvt->year;
+    out->month      = pvt->month;
+    out->day        = pvt->day;
+    out->hour       = pvt->hour;
+    out->min        = pvt->min;
+    out->sec        = pvt->sec;
+    out->time_valid = pvt->valid;
 }
 
 /* ========================== UBX 帧发送 ========================== */
@@ -182,13 +183,13 @@ static void GPS_ConvertPVT(const UBX_NAV_PVT_Payload_t *pvt, GPS_Data_t *out)
  * @note 帧结构: [SYNC1][SYNC2][CLASS][ID][LEN_L][LEN_H][PAYLOAD...][CK_A][CK_B]
  *       校验范围: CLASS + ID + LEN(2) + PAYLOAD
  */
-static void GPS_SendUBX(uint8_t msg_class, uint8_t msg_id,const uint8_t *payload, uint16_t payload_len)
+static void GPS_SendUBX(uint8_t msg_class, uint8_t msg_id, const uint8_t *payload, uint16_t payload_len)
 {
-    uint8_t frame[64];
+    uint8_t  frame[64];
     uint16_t total_len;
     uint16_t i;
-    uint8_t ck_a = 0U;
-    uint8_t ck_b = 0U;
+    uint8_t  ck_a = 0U;
+    uint8_t  ck_b = 0U;
 
     if (gps_instance.usart_instance == NULL)
     {
@@ -237,15 +238,15 @@ static void GPS_CfgPort(uint32_t baudrate)
     uint8_t pl[20];
     memset(pl, 0, sizeof(pl));
 
-    pl[0]  = 0x01U;                              /* portID: UART1 */
-    pl[4]  = 0xD0U;                              /* mode: 8N1 */
+    pl[0]  = 0x01U; /* portID: UART1 */
+    pl[4]  = 0xD0U; /* mode: 8N1 */
     pl[5]  = 0x08U;
     pl[8]  = (uint8_t)(baudrate);
     pl[9]  = (uint8_t)(baudrate >> 8);
     pl[10] = (uint8_t)(baudrate >> 16);
     pl[11] = (uint8_t)(baudrate >> 24);
-    pl[12] = 0x07U;                              /* inProtoMask: UBX+NMEA+RTCM */
-    pl[14] = 0x01U;                              /* outProtoMask: UBX */
+    pl[12] = 0x07U; /* inProtoMask: UBX+NMEA+RTCM */
+    pl[14] = 0x01U; /* outProtoMask: UBX */
 
     GPS_SendUBX(UBX_CFG_CLASS, UBX_CFG_PRT, pl, 20U);
 }
@@ -264,9 +265,9 @@ static void GPS_CfgRate(uint16_t interval_ms)
 
     pl[0] = (uint8_t)(interval_ms);
     pl[1] = (uint8_t)(interval_ms >> 8);
-    pl[2] = 0x01U;                                /* navRate: 1 */
+    pl[2] = 0x01U; /* navRate: 1 */
     pl[3] = 0x00U;
-    pl[4] = 0x01U;                                /* timeRef: GPS time */
+    pl[4] = 0x01U; /* timeRef: GPS time */
     pl[5] = 0x00U;
 
     GPS_SendUBX(UBX_CFG_CLASS, UBX_CFG_RATE, pl, 6U);
@@ -282,21 +283,21 @@ static void GPS_CfgNav5(void)
     uint8_t pl[36];
     memset(pl, 0, sizeof(pl));
 
-    pl[0]  = 0xFFU;                               /* mask */
+    pl[0]  = 0xFFU; /* mask */
     pl[1]  = 0xFFU;
-    pl[2]  = 7U;                                  /* dynModel: AIRBORNE_2G */
-    pl[3]  = 0x03U;                               /* fixMode: auto 2D/3D */
-    pl[12] = 0x0AU;                               /* minElev: 10 deg */
-    pl[14] = (uint8_t)(250U);                     /* pDop */
+    pl[2]  = 7U;              /* dynModel: AIRBORNE_2G */
+    pl[3]  = 0x03U;           /* fixMode: auto 2D/3D */
+    pl[12] = 0x0AU;           /* minElev: 10 deg */
+    pl[14] = (uint8_t)(250U); /* pDop */
     pl[15] = (uint8_t)(250U >> 8);
-    pl[16] = (uint8_t)(250U);                     /* tDop */
+    pl[16] = (uint8_t)(250U); /* tDop */
     pl[17] = (uint8_t)(250U >> 8);
-    pl[18] = (uint8_t)(100U);                     /* pAcc */
+    pl[18] = (uint8_t)(100U); /* pAcc */
     pl[19] = (uint8_t)(100U >> 8);
-    pl[20] = (uint8_t)(350U);                     /* tAcc */
+    pl[20] = (uint8_t)(350U); /* tAcc */
     pl[21] = (uint8_t)(350U >> 8);
-    pl[23] = 60U;                                 /* dgpsTimeOut */
-    pl[25] = 25U;                                 /* cnoThresh */
+    pl[23] = 60U; /* dgpsTimeOut */
+    pl[25] = 25U; /* cnoThresh */
 
     GPS_SendUBX(UBX_CFG_CLASS, UBX_CFG_NAV5, pl, 36U);
 }
@@ -319,8 +320,10 @@ static void GPS_EnableMessage(uint8_t msg_class, uint8_t msg_id, uint8_t rate)
 
 /* ========================== 串口事件回调（内部私有） ========================== */
 
-static void GPS_UART_EventCallback(USARTInstance *ins,USART_Event_e event,uint8_t *data_ptr,uint16_t data_len)
+static void GPS_UART_EventCallback(USARTInstance *ins, USART_Event_e event, uint8_t *data_ptr, uint16_t data_len)
 {
+    (void)ins;
+
     switch (event)
     {
     case USART_EVENT_RX_CPLT:
@@ -411,8 +414,7 @@ uint8_t GPS_Task_Handler(void)
 
         /* ========== 阶段 2: 基于本地快照处理 ========== */
 
-        if ((frame_count == 0U) ||
-            (frame_count == gps_instance.last_proc_frame_count))
+        if ((frame_count == 0U) || (frame_count == gps_instance.last_proc_frame_count))
         {
             return 0U;
         }
@@ -426,11 +428,10 @@ uint8_t GPS_Task_Handler(void)
             if (UBX_ParseByte(&gps_instance.parser, local_buf[i]))
             {
                 /* 解析出一个完整且校验通过的帧 */
-                if (gps_instance.parser.msg_class == UBX_NAV_CLASS &&
-                    gps_instance.parser.msg_id    == UBX_NAV_PVT   &&
-                    gps_instance.parser.length    == UBX_PVT_PAYLOAD_LEN)
+                if (gps_instance.parser.msg_class == UBX_NAV_CLASS && gps_instance.parser.msg_id == UBX_NAV_PVT &&
+                    gps_instance.parser.length == UBX_PVT_PAYLOAD_LEN)
                 {
-                    GPS_Data_t data;
+                    GPS_Data_t            data;
                     UBX_NAV_PVT_Payload_t pvt;
 
                     memcpy(&pvt, gps_instance.parser.payload, sizeof(pvt));

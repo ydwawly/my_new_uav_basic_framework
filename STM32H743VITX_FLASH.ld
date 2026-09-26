@@ -34,13 +34,13 @@
 /* Entry Point */
 ENTRY(Reset_Handler)
 
-/* æ ˆé¡¶ */
+/* Õ»¶¥ */
 
 _estack = ORIGIN(RAM_D1) + LENGTH(RAM_D1);
 
 /* heap / stack */
 
-_Min_Heap_Size  = 0x4000;
+_Min_Heap_Size = 0x2000;
 _Min_Stack_Size = 0x4000;
 
 /*************************************************
@@ -49,7 +49,7 @@ _Min_Stack_Size = 0x4000;
 
 MEMORY
 {
-/* Bootloaderä¸“ç”¨ */
+/* Bootloader×¨ÓÃ */
 /*    FLASH    (rx)  : ORIGIN = 0x08020000, LENGTH = 1920K*/
     FLASH    (rx)  : ORIGIN = 0x08000000, LENGTH = 2048K
 

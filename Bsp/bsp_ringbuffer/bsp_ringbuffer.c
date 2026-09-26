@@ -8,52 +8,55 @@
 
 #include "cmsis_compiler.h" // 包含硬件内存屏障指令 __DMB()
 
-bool RingBuffer_Init(RingBuffer_t* rb, uint8_t* pool, uint32_t size)
+bool RingBuffer_Init(RingBuffer_t *rb, uint8_t *pool, uint32_t size)
 {
     // 参数合法性检查
-    if (rb == NULL || pool == NULL || size == 0) return false;
+    if (rb == NULL || pool == NULL || size == 0)
+        return false;
 
     // 核心安全检查：确保 size 是 2 的幂次方 (例如 256, 1024)
     // 原理：2的幂次方减1后，二进制全为1，这样才能用位与(&)替代取模(%)运算
-    if ((size & (size - 1)) != 0) return false;
+    if ((size & (size - 1)) != 0)
+        return false;
 
     rb->buffer = pool;
-    rb->size = size;
-    rb->mask = rb->size - 1; // 预先算好掩码，极致压榨计算性能
-    rb->head = 0;            // 初始化读写游标
-    rb->tail = 0;
+    rb->size   = size;
+    rb->mask   = rb->size - 1; // 预先算好掩码，极致压榨计算性能
+    rb->head   = 0;            // 初始化读写游标
+    rb->tail   = 0;
 
     // 清空用户提供的内存池
     memset(rb->buffer, 0, size);
     return true;
 }
 
-uint32_t RingBuffer_GetUsed(RingBuffer_t* rb)
+uint32_t RingBuffer_GetUsed(RingBuffer_t *rb)
 {
     // 利用无符号数的自然溢出特性，直接相减即可得到正确差值
     return rb->head - rb->tail;
 }
 
-uint32_t RingBuffer_GetFree(RingBuffer_t* rb)
+uint32_t RingBuffer_GetFree(RingBuffer_t *rb)
 {
     return rb->size - (rb->head - rb->tail);
 }
 
-bool RingBuffer_Push(RingBuffer_t* rb, const void* data, uint32_t len)
+bool RingBuffer_Push(RingBuffer_t *rb, const void *data, uint32_t len)
 {
     uint32_t head = rb->head;
     uint32_t tail = rb->tail;
 
     // 检查剩余可用空间是否能够容纳本次写入的长度
     uint32_t free_space = rb->size - (head - tail);
-    if (free_space < len) return false; // 空间不足，放弃写入
+    if (free_space < len)
+        return false; // 空间不足，放弃写入
 
     // 计算当前 head 游标对应的实际物理数组下标
     uint32_t head_start = head & rb->mask;
     // 计算从当前物理下标到数组物理末尾，还有多少连续的可用空间
     uint32_t space_to_end = rb->size - head_start;
 
-    const uint8_t* ptr = (const uint8_t*)data;
+    const uint8_t *ptr = (const uint8_t *)data;
 
     if (len <= space_to_end)
     {
@@ -79,14 +82,15 @@ bool RingBuffer_Push(RingBuffer_t* rb, const void* data, uint32_t len)
     return true;
 }
 
-uint32_t RingBuffer_Pop(RingBuffer_t* rb, void* out_data, uint32_t max_len)
+uint32_t RingBuffer_Pop(RingBuffer_t *rb, void *out_data, uint32_t max_len)
 {
     uint32_t tail = rb->tail;
     uint32_t head = rb->head;
 
     // 计算当前缓冲区内有多少数据可读
     uint32_t available_space = head - tail;
-    if (available_space == 0) return 0; // 缓冲区为空
+    if (available_space == 0)
+        return 0; // 缓冲区为空
 
     // 确定实际要读取的长度（不能超过现存数据量，也不能超过用户请求的最大量）
     uint32_t read_len = (available_space > max_len) ? max_len : available_space;
@@ -96,7 +100,7 @@ uint32_t RingBuffer_Pop(RingBuffer_t* rb, void* out_data, uint32_t max_len)
     // 计算从当前物理下标到数组物理末尾的连续可读空间
     uint32_t space_to_end = rb->size - read_start;
 
-    uint8_t* ptr = (uint8_t*)out_data;
+    uint8_t *ptr = (uint8_t *)out_data;
 
     if (read_len <= space_to_end)
     {
@@ -120,12 +124,14 @@ uint32_t RingBuffer_Pop(RingBuffer_t* rb, void* out_data, uint32_t max_len)
     return read_len;
 }
 
-bool RingBuffer_PushByte(RingBuffer_t* rb, uint8_t data) {
+bool RingBuffer_PushByte(RingBuffer_t *rb, uint8_t data)
+{
     uint32_t head = rb->head;
     uint32_t tail = rb->tail;
 
     // 检查缓冲区是否已满
-    if ((head - tail) >= rb->size) {
+    if ((head - tail) >= rb->size)
+    {
         return false;
     }
 
@@ -139,13 +145,14 @@ bool RingBuffer_PushByte(RingBuffer_t* rb, uint8_t data) {
     return true;
 }
 
-
-bool RingBuffer_PopByte(RingBuffer_t* rb, uint8_t* out_data) {
+bool RingBuffer_PopByte(RingBuffer_t *rb, uint8_t *out_data)
+{
     uint32_t head = rb->head;
     uint32_t tail = rb->tail;
 
     // 检查缓冲区是否为空
-    if (head == tail) {
+    if (head == tail)
+    {
         return false;
     }
 

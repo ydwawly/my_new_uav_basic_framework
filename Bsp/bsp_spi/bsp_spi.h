@@ -1,155 +1,154 @@
-//
-// Created by Administrator on 2026/6/14.
-//
+/**
+ * @file bsp_spi.h
+ * @brief 共享 SPI 总线的设备抽象，支持阻塞、中断和 DMA 模式
+ *
+ * 一个物理 SPI 外设可以挂载多个从设备，不同设备通过独立 CS 区分。
+ * BSP 负责统一管理：
+ * 1. SPI 设备注册；
+ * 2. 物理总线所有权；
+ * 3. CS 生命周期；
+ * 4. BLOCK / IT / DMA 传输；
+ * 5. HAL 完成回调到具体设备的路由。
+ */
 
 #ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_SPI_H
 #define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_SPI_H
 
-#include "spi.h"
+#include <stdint.h>
+
 #include "gpio.h"
-#include "stdint.h"
+#include "spi.h"
 
-/* ===================== 用户配置区 ===================== */
+/* 最大 SPI 逻辑设备数量。设备启动后常驻，因此采用固定静态容量。 */
+#define SPI_DEVICE_CNT    8U
 
-#define SPI_DEVICE_CNT     8    // 全局 SPI 实例最大数量（按实际从机数设置）
-#define SPI_BLOCK_TIMEOUT  50   // 阻塞模式超时时间 (ms)
-
-/* ===================================================== */
+/* 阻塞传输最大等待时间，单位 ms。 */
+#define SPI_BLOCK_TIMEOUT 50U
 
 /**
- * @brief SPI 工作模式枚举
+ * @brief SPI 设备工作模式
+ *
+ * BLOCK：调用函数直到传输完成才返回。
+ * IT   ：启动中断传输后立即返回。
+ * DMA  ：启动 DMA 传输后立即返回。
  */
 typedef enum
 {
-    SPI_BLOCK_MODE = 0, // 阻塞模式（默认，适合低速/简单场景）
-    SPI_IT_MODE,        // 中断模式
-    SPI_DMA_MODE,       // DMA 模式（高速/大数据量推荐）
+    SPI_BLOCK_MODE = 0U,
+    SPI_IT_MODE,
+    SPI_DMA_MODE
 } SPI_TXRX_MODE_e;
 
 /**
- * @brief SPI 完成事件枚举（用于回调通知上层是哪种操作完成/出错）
+ * @brief 异步 SPI 事务完成事件
+ *
+ * IT / DMA 模式完成后，BSP 根据当前总线 owner 将事件路由给对应设备。
  */
 typedef enum
 {
-    SPI_EVENT_TX_CPLT   = 0, // 仅发送完成
-    SPI_EVENT_RX_CPLT,       // 仅接收完成
-    SPI_EVENT_TXRX_CPLT,     // 全双工收发完成
-    SPI_EVENT_ERROR,         // 传输出错
+    SPI_EVENT_TX_CPLT = 0U,
+    SPI_EVENT_RX_CPLT,
+    SPI_EVENT_TXRX_CPLT,
+    SPI_EVENT_ERROR
 } SPI_Event_e;
 
-/* 前置声明 */
 typedef struct SPIInstance_t SPIInstance;
 
 /**
- * @brief SPI 回调函数类型
- *        运行于中断上下文，禁止耗时操作、禁止阻塞
+ * @brief SPI 设备回调函数
  *
- * @param ins   触发事件的 SPI 实例指针
- * @param event 触发的事件类型
+ * @note 回调由 HAL SPI 中断回调触发，因此运行在中断上下文。
+ *       回调中应只做置标志、任务通知、启动下一笔异步事务等短操作，
+ *       不应执行阻塞等待或耗时处理。
  */
-typedef void (*spi_callback_t)(SPIInstance *ins, SPI_Event_e event);
+typedef void (*spi_callback_t)(SPIInstance *instance, SPI_Event_e event);
 
 /**
- * @brief SPI 实例结构体
+ * @brief 一个逻辑 SPI 从设备的运行时实例
+ *
+ * 同一个 spi_handle 可以对应多个 SPIInstance，
+ * 每个实例通过 GPIOx + cs_pin 区分具体从设备。
  */
 struct SPIInstance_t
 {
-    /* --- 硬件绑定 --- */
-    SPI_HandleTypeDef *spi_handle; // HAL SPI 句柄
-    GPIO_TypeDef      *GPIOx;      // CS 片选 GPIO 端口
-    uint16_t           cs_pin;     // CS 片选引脚号
+    SPI_HandleTypeDef *spi_handle;
 
-    /* --- 传输配置 --- */
-    SPI_TXRX_MODE_e spi_work_mode; // 当前工作模式
+    GPIO_TypeDef *GPIOx;
+    uint16_t cs_pin;
 
-    /* --- 总线状态（内部维护，外部不要直接修改） --- */
-    volatile uint8_t is_busy;      // 总线忙标志（1=忙，0=空闲）
+    SPI_TXRX_MODE_e spi_work_mode;
 
-    /* --- 缓冲区信息（异步模式下回调时可用） --- */
-    uint16_t  tx_size;             // 本次发送字节数
-    uint16_t  rx_size;             // 本次接收字节数
-    uint8_t  *rx_buffer;           // 接收缓冲区指针
-    const uint8_t *tx_buffer;      // 发送缓冲区指针
+    /*
+     * 表示当前设备是否有未完成事务。
+     * IT / DMA 模式下从启动传输持续到 HAL 完成回调。
+     */
+    volatile uint8_t is_busy;
 
-    /* --- 用户层绑定 --- */
-    spi_callback_t callback;       // 完成/出错回调（可为 NULL）
-    void          *id;             // 上层模块指针（回调时便于区分设备）
+    spi_callback_t callback;
+
+    /*
+     * 上层私有上下文指针。
+     * 可用于在统一回调中反查具体设备对象，相当于 C 中的 this 指针。
+     */
+    void *id;
 };
+
 /**
- * @brief SPI 注册初始化配置结构体
+ * @brief SPI 设备注册配置
+ *
+ * SPI 外设 + GPIO Port + CS Pin 唯一确定一个逻辑 SPI 设备。
  */
 typedef struct
 {
-    SPI_HandleTypeDef *spi_handle; // HAL SPI 句柄
-    GPIO_TypeDef      *GPIOx;      // CS 片选 GPIO 端口
-    uint16_t           cs_pin;     // CS 片选引脚号
-    SPI_TXRX_MODE_e    spi_work_mode;
-    spi_callback_t     callback;   // 可为 NULL
-    void              *id;         // 上层模块指针，可为 NULL
+    SPI_HandleTypeDef *spi_handle;
+
+    GPIO_TypeDef *GPIOx;
+    uint16_t cs_pin;
+
+    SPI_TXRX_MODE_e spi_work_mode;
+    spi_callback_t callback;
+    void *id;
 } SPI_Init_Config_s;
 
+/**
+ * @brief 注册一个 SPI 从设备
+ *
+ * 重复注册同一个 SPI + GPIO + CS 时直接返回已有实例。
+ *
+ * @return 成功返回实例地址，配置非法或静态池耗尽返回 NULL。
+ */
+SPIInstance *SPIRegister(const SPI_Init_Config_s *config);
 
 /**
- * @brief 总线上下文：记录每条 SPI 总线当前正在服务哪个实例
- *        用于中断/DMA 完成回调时，快速找到 owner 而不靠读 GPIO 电平
+ * @brief 发起仅发送事务
+ *
+ * BLOCK 模式下函数在传输完成后返回。
+ * IT / DMA 模式下函数启动事务后立即返回。
+ *
+ * @note IT / DMA 模式下 data 必须保持有效直到完成回调执行。
  */
-typedef struct
-{
-    SPI_HandleTypeDef *hspi;   // 总线句柄
-    SPIInstance       *owner;  // 当前持有总线的实例（NULL = 总线空闲）
-    SPI_Event_e        pending_event; // 本次传输对应的事件类型
-} SPIBusContext_t;
-
-/* ================== 对外接口声明 ================== */
+HAL_StatusTypeDef SPITransmit(SPIInstance *instance, const uint8_t *data, uint16_t length);
 
 /**
- * @brief  注册一个 SPI 从机实例
- * @param  conf 初始化配置，不得为 NULL
- * @retval 成功返回实例指针；失败（参数非法/池满/重复注册）返回 NULL
- * @note   注册时会自动将 CS 拉高（释放/非选中状态）
+ * @brief 发起仅接收事务
+ *
+ * @note IT / DMA 模式下 data 必须保持有效直到完成回调执行。
  */
-SPIInstance *SPIRegister(const SPI_Init_Config_s *conf);
+HAL_StatusTypeDef SPIRecv(SPIInstance *instance, uint8_t *data, uint16_t length);
 
 /**
- * @brief  通过 SPI 向从机发送数据
- * @param  spi_ins  目标 SPI 实例
- * @param  ptr_data 发送缓冲区（DMA/IT 模式下必须保持有效直到回调触发）
- * @param  len      发送字节数（1~65535）
- * @retval HAL_OK / HAL_ERROR / HAL_BUSY / HAL_TIMEOUT
- * @note   DMA/IT 模式下函数立即返回，完成后触发 SPI_EVENT_TX_CPLT 回调
- * @note   阻塞模式下函数返回时传输已完成
+ * @brief 发起全双工收发事务
+ *
+ * @note IT / DMA 模式下 tx_data 和 rx_data 都必须保持有效，
+ *       直到完成回调执行。
  */
-HAL_StatusTypeDef SPITransmit(SPIInstance *spi_ins, const uint8_t *ptr_data, uint16_t len);
+HAL_StatusTypeDef SPITransRecv(SPIInstance *instance, const uint8_t *tx_data, uint8_t *rx_data, uint16_t length);
 
 /**
- * @brief  通过 SPI 从从机接收数据
- * @param  spi_ins  目标 SPI 实例
- * @param  ptr_data 接收缓冲区（DMA/IT 模式下必须保持有效直到回调触发）
- * @param  len      接收字节数（1~65535）
- * @retval HAL_OK / HAL_ERROR / HAL_BUSY / HAL_TIMEOUT
- * @note   DMA/IT 模式下函数立即返回，完成后触发 SPI_EVENT_RX_CPLT 回调
+ * @brief 修改设备后续传输使用的工作模式
+ *
+ * 当前设备存在未完成事务时禁止修改。
  */
-HAL_StatusTypeDef SPIRecv(SPIInstance *spi_ins, uint8_t *ptr_data, uint16_t len);
+HAL_StatusTypeDef SPISetMode(SPIInstance *instance, SPI_TXRX_MODE_e mode);
 
-/**
- * @brief  通过 SPI 全双工同时收发数据
- * @param  spi_ins     目标 SPI 实例
- * @param  ptr_data_tx 发送缓冲区
- * @param  ptr_data_rx 接收缓冲区
- * @param  len         收发字节数（1~65535）
- * @retval HAL_OK / HAL_ERROR / HAL_BUSY / HAL_TIMEOUT
- * @note   DMA/IT 模式下函数立即返回，完成后触发 SPI_EVENT_TXRX_CPLT 回调
- */
-HAL_StatusTypeDef SPITransRecv(SPIInstance *spi_ins, const uint8_t *ptr_data_tx,
-                                uint8_t *ptr_data_rx, uint16_t len);
-
-/**
- * @brief  动态修改 SPI 工作模式
- * @param  spi_ins  目标实例
- * @param  spi_mode 新工作模式
- * @retval HAL_OK / HAL_ERROR（实例为 NULL 或总线忙时不允许切换）
- * @note   请勿在传输过程中切换模式
- */
-HAL_StatusTypeDef SPISetMode(SPIInstance *spi_ins, SPI_TXRX_MODE_e spi_mode);
-
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_SPI_H
+#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_BSP_SPI_H */

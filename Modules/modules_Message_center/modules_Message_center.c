@@ -14,15 +14,15 @@
  * 所有 Publisher、Subscriber 实例以及真实传输的 Payload，
  * 全部在编译期划分好最大边界，并在运行时采用“游标单向偏移”进行分配。
  * ================================================================ */
-static Publisher_t  Publisher_Pool[MAX_TOPICS];         /* 发布者控制块池 */
-static Subscriber_t Subscriber_Pool[MAX_SUBSCRIBERS];   /* 订阅者控制块池 (修复: 使用 MAX_SUBSCRIBERS) */
+static Publisher_t  Publisher_Pool[MAX_TOPICS];                      /* 发布者控制块池 */
+static Subscriber_t Subscriber_Pool[MAX_SUBSCRIBERS];                /* 订阅者控制块池 (修复: 使用 MAX_SUBSCRIBERS) */
 static uint8_t      Message_Payload_Pool[Message_PAYLOAD_POOL_SIZE]; /* 物理数据缓存大内存池 */
 
-static uint8_t Publisher_Used[MAX_TOPICS];              /* 标记 Publisher 槽位是否被占用（1=占用） */
-static uint8_t Subscriber_Used[MAX_SUBSCRIBERS];        /* 标记 Subscriber 槽位是否被占用 */
+static uint8_t Publisher_Used[MAX_TOPICS];       /* 标记 Publisher 槽位是否被占用（1=占用） */
+static uint8_t Subscriber_Used[MAX_SUBSCRIBERS]; /* 标记 Subscriber 槽位是否被占用 */
 
-static uint32_t Message_Payload_Offset = 0;             /* 数据缓存池分配游标 */
-static uint8_t  Message_Center_Frozen = 0;              /* 冻结标志 (1=禁止新注册) */
+static uint32_t Message_Payload_Offset = 0; /* 数据缓存池分配游标 */
+static uint8_t  Message_Center_Frozen  = 0; /* 冻结标志 (1=禁止新注册) */
 
 /* ================================================================
  * 内部私有工具函数
@@ -49,13 +49,17 @@ static void CheckName(const char *name)
     if (name == NULL)
     {
         RTTERROR("[MsgCenter] 名字为空");
-        while (1) {}
+        while (1)
+        {
+        }
     }
 
     if (StrnLenLocal(name, MAX_TOPIC_NAME_LEN + 1U) > MAX_TOPIC_NAME_LEN)
     {
         RTTERROR("[MsgCenter] 名字太长");
-        while (1) {}
+        while (1)
+        {
+        }
     }
 }
 
@@ -107,10 +111,12 @@ static Publisher_t *AllocPublisher(void)
 static void FreePublisher(Publisher_t *pub)
 {
     uint32_t idx;
-    if (pub == NULL) return;
+    if (pub == NULL)
+        return;
 
     idx = (uint32_t)(pub - Publisher_Pool);
-    if (idx >= MAX_TOPICS) return;
+    if (idx >= MAX_TOPICS)
+        return;
 
     memset(&Publisher_Pool[idx], 0, sizeof(Publisher_t));
     Publisher_Used[idx] = 0;
@@ -147,7 +153,7 @@ static uint8_t *AllocPayload(uint32_t bytes)
         return NULL;
     }
 
-    block = &Message_Payload_Pool[offset];
+    block                  = &Message_Payload_Pool[offset];
     Message_Payload_Offset = offset + bytes;
     memset(block, 0, bytes); /* 初始化为0，防止出现脏数据 */
     return block;
@@ -158,13 +164,15 @@ static uint8_t *AllocPayload(uint32_t bytes)
  * ================================================================ */
 static uint8_t TryRead(Subscriber_t *sub, void *out)
 {
-    uint32_t retry;
+    uint32_t     retry;
     Publisher_t *pub;
 
-    if ((sub == NULL) || (out == NULL)) return 0;
+    if ((sub == NULL) || (out == NULL))
+        return 0;
 
     pub = sub->pub;
-    if ((pub == NULL) || (pub->data_ptr == NULL) ||(pub->data_len == 0)) return 0;
+    if ((pub == NULL) || (pub->data_ptr == NULL) || (pub->data_len == 0))
+        return 0;
 
     for (retry = 0U; retry < Message_center_MAX_READ_RETRY; retry++)
     {
@@ -174,7 +182,7 @@ static uint8_t TryRead(Subscriber_t *sub, void *out)
         seq = SeqLock_TryReadBegin(&pub->seqlock);
 
         /* 如果是奇数，表示底层正在写入，非阻塞直接进入下一次重试 */
-        if(seq & 1U)
+        if (seq & 1U)
         {
             continue;
         }
@@ -216,7 +224,7 @@ void Message_Center_Init(void)
     memset(Message_Payload_Pool, 0, sizeof(Message_Payload_Pool));
 
     Message_Payload_Offset = 0;
-    Message_Center_Frozen = 0;
+    Message_Center_Frozen  = 0;
 }
 
 void Message_Center_Freeze(void)
@@ -230,9 +238,9 @@ void Message_Center_Freeze(void)
 Publisher_t *PubRegister(char *name, uint16_t data_len)
 {
     Publisher_t *pub;
-    uint8_t *payload;
-    uint32_t payload_backup;
-    uint32_t name_len;
+    uint8_t     *payload;
+    uint32_t     payload_backup;
+    uint32_t     name_len;
 
     CheckName(name);
 
@@ -301,7 +309,7 @@ Publisher_t *PubRegister(char *name, uint16_t data_len)
 
 Subscriber_t *SubRegister(char *name, uint16_t data_len)
 {
-    Publisher_t *pub;
+    Publisher_t  *pub;
     Subscriber_t *sub;
 
     pub = PubRegister(name, data_len);
@@ -365,7 +373,7 @@ uint8_t PubPushMessage(Publisher_t *pub, void *data)
     for (i = 0; i < sub_count; i++)
     {
         Subscriber_t *sub = pub->subs[i];
-        TaskHandle_t task;
+        TaskHandle_t  task;
 
         if (sub == NULL || !sub->notify_flag)
         {
@@ -383,7 +391,8 @@ uint8_t PubPushMessage(Publisher_t *pub, void *data)
             BaseType_t woken = pdFALSE;
             vTaskNotifyGiveFromISR(task, &woken);
             portYIELD_FROM_ISR(woken);
-        } else
+        }
+        else
         {
             xTaskNotifyGive(task);
         }
@@ -413,7 +422,7 @@ uint8_t SubGetMessage(Subscriber_t *sub, void *out, TickType_t xWait)
         return 1;
     }
 
-    start = xTaskGetTickCount();
+    start     = xTaskGetTickCount();
     remaining = xWait;
 
     while (remaining > 0)
@@ -427,7 +436,7 @@ uint8_t SubGetMessage(Subscriber_t *sub, void *out, TickType_t xWait)
         /* 防止设标志的缝隙里正好来了数据，做一次兜底读取 */
         if (TryRead(sub, out))
         {
-            sub->notify_flag = 0U;
+            sub->notify_flag  = 0U;
             sub->waiting_task = NULL;
             return 1;
         }
@@ -436,7 +445,7 @@ uint8_t SubGetMessage(Subscriber_t *sub, void *out, TickType_t xWait)
         (void)ulTaskNotifyTake(pdTRUE, remaining);
 
         /* 醒来后立刻复位标志 */
-        sub->notify_flag = 0U;
+        sub->notify_flag  = 0U;
         sub->waiting_task = NULL;
         __DMB();
 
@@ -456,4 +465,3 @@ uint8_t SubGetMessage(Subscriber_t *sub, void *out, TickType_t xWait)
     }
     return TryRead(sub, out);
 }
-

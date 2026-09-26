@@ -11,12 +11,14 @@
 #include "bsp_utils_seqlock.h"
 #include "modules_Message_center.h"
 #include "usart.h"
-
+#include "FreeRTOS.h"
+#include "task.h"
 /* ========================== 私有配置 ========================== */
 
-#define SBUS_UART_HANDLE         huart1
-#define SBUS_SEQLOCK_MAX_RETRY   3U
-#define SBUS_TOPIC_NAME          "sbus_data"
+#define SBUS_UART_HANDLE       huart6
+#define SBUS_SEQLOCK_MAX_RETRY 3U
+#define SBUS_TOPIC_NAME        "sbus_data"
+#define NOTIFY_BIT_REMOTE      (1 << 6)
 /* ========================== 协议定义 ========================== */
 
 /*
@@ -41,29 +43,29 @@
  *   中点: 992
  */
 
-#define SBUS_FRAME_LEN              25U
-#define SBUS_HEADER                 0x0FU
-#define SBUS_FOOTER                 0x00U
-#define SBUS_CHANNEL_COUNT          16U
-#define SBUS_DIGITAL_CHANNEL_COUNT  2U
+#define SBUS_FRAME_LEN             25U
+#define SBUS_HEADER                0x0FU
+#define SBUS_FOOTER                0x00U
+#define SBUS_CHANNEL_COUNT         16U
+#define SBUS_DIGITAL_CHANNEL_COUNT 2U
 
 /* 帧内字段偏移 */
-#define SBUS_IDX_HEADER             0U
-#define SBUS_IDX_PAYLOAD_START      1U
-#define SBUS_IDX_PAYLOAD_END        22U
-#define SBUS_IDX_FLAGS              23U
-#define SBUS_IDX_FOOTER             24U
+#define SBUS_IDX_HEADER        0U
+#define SBUS_IDX_PAYLOAD_START 1U
+#define SBUS_IDX_PAYLOAD_END   22U
+#define SBUS_IDX_FLAGS         23U
+#define SBUS_IDX_FOOTER        24U
 
 /* 标志位定义 */
-#define SBUS_FLAG_CH17              (1U << 0)
-#define SBUS_FLAG_CH18              (1U << 1)
-#define SBUS_FLAG_FRAME_LOST        (1U << 2)
-#define SBUS_FLAG_FAILSAFE          (1U << 3)
+#define SBUS_FLAG_CH17       (1U << 0)
+#define SBUS_FLAG_CH18       (1U << 1)
+#define SBUS_FLAG_FRAME_LOST (1U << 2)
+#define SBUS_FLAG_FAILSAFE   (1U << 3)
 
 /* 通道值参考范围 */
-#define SBUS_CHANNEL_VALUE_MIN      172U
-#define SBUS_CHANNEL_VALUE_MID      992U
-#define SBUS_CHANNEL_VALUE_MAX      1811U
+#define SBUS_CHANNEL_VALUE_MIN 172U
+#define SBUS_CHANNEL_VALUE_MID 992U
+#define SBUS_CHANNEL_VALUE_MAX 1811U
 
 /* ========================== 对外发布数据结构 ========================== */
 
@@ -79,10 +81,10 @@ typedef struct
 {
     uint16_t channels[SBUS_CHANNEL_COUNT];
 
-    uint8_t  ch17;
-    uint8_t  ch18;
-    uint8_t  frame_lost;
-    uint8_t  failsafe;
+    uint8_t ch17;
+    uint8_t ch18;
+    uint8_t frame_lost;
+    uint8_t failsafe;
 
     uint64_t Sbus_Timestamp;
 } SBUS_Data_t;
@@ -136,5 +138,7 @@ uint8_t SBUS_Init(void);
  * @note 在任务中周期调用，建议调用周期 <= 5ms
  */
 uint8_t SBUS_Task_Handler(void);
+
+void Sbus_RegisterReadyTask(TaskHandle_t task_handle);
 
 #endif //MY_NEW_UAV_BAICE_FRAMEWORK_MUDULES_SBUS_H

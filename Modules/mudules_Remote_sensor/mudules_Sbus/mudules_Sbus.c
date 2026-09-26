@@ -10,14 +10,12 @@
 /* ========================== 全局静态实例 ========================== */
 
 static SBUS_Instance_t sbus_instance;
+static TaskHandle_t    remote_sbus_ready_task = NULL;
 
 /* ========================== 私有函数声明 ========================== */
 
 static void SBUS_ParseRawFrame(const uint8_t *buf, SBUS_Data_t *out);
-static void SBUS_UART_EventCallback(USARTInstance *ins,
-                                    USART_Event_e event,
-                                    uint8_t *data_ptr,
-                                    uint16_t data_len);
+static void SBUS_UART_EventCallback(USARTInstance *ins, USART_Event_e event, uint8_t *data_ptr, uint16_t data_len);
 
 /* ========================== 私有函数实现 ========================== */
 
@@ -43,38 +41,35 @@ static void SBUS_ParseRawFrame(const uint8_t *buf, SBUS_Data_t *out)
      * 每个通道 11 bit，跨字节小端排列
      * 使用位操作逐个提取
      */
-    out->channels[0]  = (uint16_t)(((uint16_t)d[0]       | (uint16_t)d[1]  << 8)                          & 0x07FFU);
-    out->channels[1]  = (uint16_t)(((uint16_t)d[1]  >> 3 | (uint16_t)d[2]  << 5)                          & 0x07FFU);
-    out->channels[2]  = (uint16_t)(((uint16_t)d[2]  >> 6 | (uint16_t)d[3]  << 2 | (uint16_t)d[4]  << 10)  & 0x07FFU);
-    out->channels[3]  = (uint16_t)(((uint16_t)d[4]  >> 1 | (uint16_t)d[5]  << 7)                          & 0x07FFU);
-    out->channels[4]  = (uint16_t)(((uint16_t)d[5]  >> 4 | (uint16_t)d[6]  << 4)                          & 0x07FFU);
-    out->channels[5]  = (uint16_t)(((uint16_t)d[6]  >> 7 | (uint16_t)d[7]  << 1 | (uint16_t)d[8]  << 9)   & 0x07FFU);
-    out->channels[6]  = (uint16_t)(((uint16_t)d[8]  >> 2 | (uint16_t)d[9]  << 6)                          & 0x07FFU);
-    out->channels[7]  = (uint16_t)(((uint16_t)d[9]  >> 5 | (uint16_t)d[10] << 3)                          & 0x07FFU);
-    out->channels[8]  = (uint16_t)(((uint16_t)d[11]      | (uint16_t)d[12] << 8)                          & 0x07FFU);
-    out->channels[9]  = (uint16_t)(((uint16_t)d[12] >> 3 | (uint16_t)d[13] << 5)                          & 0x07FFU);
-    out->channels[10] = (uint16_t)(((uint16_t)d[13] >> 6 | (uint16_t)d[14] << 2 | (uint16_t)d[15] << 10)  & 0x07FFU);
-    out->channels[11] = (uint16_t)(((uint16_t)d[15] >> 1 | (uint16_t)d[16] << 7)                          & 0x07FFU);
-    out->channels[12] = (uint16_t)(((uint16_t)d[16] >> 4 | (uint16_t)d[17] << 4)                          & 0x07FFU);
-    out->channels[13] = (uint16_t)(((uint16_t)d[17] >> 7 | (uint16_t)d[18] << 1 | (uint16_t)d[19] << 9)   & 0x07FFU);
-    out->channels[14] = (uint16_t)(((uint16_t)d[19] >> 2 | (uint16_t)d[20] << 6)                          & 0x07FFU);
-    out->channels[15] = (uint16_t)(((uint16_t)d[20] >> 5 | (uint16_t)d[21] << 3)                          & 0x07FFU);
+    out->channels[0]  = (uint16_t)(((uint16_t)d[0] | (uint16_t)d[1] << 8) & 0x07FFU);
+    out->channels[1]  = (uint16_t)(((uint16_t)d[1] >> 3 | (uint16_t)d[2] << 5) & 0x07FFU);
+    out->channels[2]  = (uint16_t)(((uint16_t)d[2] >> 6 | (uint16_t)d[3] << 2 | (uint16_t)d[4] << 10) & 0x07FFU);
+    out->channels[3]  = (uint16_t)(((uint16_t)d[4] >> 1 | (uint16_t)d[5] << 7) & 0x07FFU);
+    out->channels[4]  = (uint16_t)(((uint16_t)d[5] >> 4 | (uint16_t)d[6] << 4) & 0x07FFU);
+    out->channels[5]  = (uint16_t)(((uint16_t)d[6] >> 7 | (uint16_t)d[7] << 1 | (uint16_t)d[8] << 9) & 0x07FFU);
+    out->channels[6]  = (uint16_t)(((uint16_t)d[8] >> 2 | (uint16_t)d[9] << 6) & 0x07FFU);
+    out->channels[7]  = (uint16_t)(((uint16_t)d[9] >> 5 | (uint16_t)d[10] << 3) & 0x07FFU);
+    out->channels[8]  = (uint16_t)(((uint16_t)d[11] | (uint16_t)d[12] << 8) & 0x07FFU);
+    out->channels[9]  = (uint16_t)(((uint16_t)d[12] >> 3 | (uint16_t)d[13] << 5) & 0x07FFU);
+    out->channels[10] = (uint16_t)(((uint16_t)d[13] >> 6 | (uint16_t)d[14] << 2 | (uint16_t)d[15] << 10) & 0x07FFU);
+    out->channels[11] = (uint16_t)(((uint16_t)d[15] >> 1 | (uint16_t)d[16] << 7) & 0x07FFU);
+    out->channels[12] = (uint16_t)(((uint16_t)d[16] >> 4 | (uint16_t)d[17] << 4) & 0x07FFU);
+    out->channels[13] = (uint16_t)(((uint16_t)d[17] >> 7 | (uint16_t)d[18] << 1 | (uint16_t)d[19] << 9) & 0x07FFU);
+    out->channels[14] = (uint16_t)(((uint16_t)d[19] >> 2 | (uint16_t)d[20] << 6) & 0x07FFU);
+    out->channels[15] = (uint16_t)(((uint16_t)d[20] >> 5 | (uint16_t)d[21] << 3) & 0x07FFU);
 
     /* 标志位 */
     uint8_t flags = buf[SBUS_IDX_FLAGS];
 
-    out->ch17       = (flags & SBUS_FLAG_CH17)       ? 1U : 0U;
-    out->ch18       = (flags & SBUS_FLAG_CH18)       ? 1U : 0U;
+    out->ch17       = (flags & SBUS_FLAG_CH17) ? 1U : 0U;
+    out->ch18       = (flags & SBUS_FLAG_CH18) ? 1U : 0U;
     out->frame_lost = (flags & SBUS_FLAG_FRAME_LOST) ? 1U : 0U;
-    out->failsafe   = (flags & SBUS_FLAG_FAILSAFE)   ? 1U : 0U;
+    out->failsafe   = (flags & SBUS_FLAG_FAILSAFE) ? 1U : 0U;
 }
 
 /* ========================== 串口事件回调（内部私有） ========================== */
 
-static void SBUS_UART_EventCallback(USARTInstance *ins,
-                                    USART_Event_e event,
-                                    uint8_t *data_ptr,
-                                    uint16_t data_len)
+static void SBUS_UART_EventCallback(USARTInstance *ins, USART_Event_e event, uint8_t *data_ptr, uint16_t data_len)
 {
     (void)ins;
 
@@ -98,6 +93,12 @@ static void SBUS_UART_EventCallback(USARTInstance *ins,
         sbus_instance.rx_frame_count++;
 
         SeqLock_WriteEnd(&sbus_instance.data_lock);
+        if (remote_sbus_ready_task != NULL)
+        {
+            BaseType_t higher_priority_task_woken = pdFALSE;
+            xTaskNotifyFromISR(remote_sbus_ready_task, NOTIFY_BIT_REMOTE, eSetBits, &higher_priority_task_woken);
+            portYIELD_FROM_ISR(higher_priority_task_woken);
+        }
         break;
 
     case USART_EVENT_ERROR:
@@ -114,12 +115,12 @@ static void SBUS_UART_EventCallback(USARTInstance *ins,
 
 uint8_t SBUS_Task_Handler(void)
 {
-    uint32_t   start_seq;
-    uint32_t   frame_count;
-    uint16_t   raw_len;
-    uint64_t   timestamp;
-    uint8_t    local_buf[SBUS_FRAME_LEN];
-    uint8_t    retry;
+    uint32_t    start_seq;
+    uint32_t    frame_count;
+    uint16_t    raw_len;
+    uint64_t    timestamp;
+    uint8_t     local_buf[SBUS_FRAME_LEN];
+    uint8_t     retry;
     SBUS_Data_t data;
 
     if (sbus_instance.publisher == NULL)
@@ -155,8 +156,7 @@ uint8_t SBUS_Task_Handler(void)
         /* ========== 阶段 2：基于本地快照做校验 ========== */
 
         /* 检查：是否有新帧 */
-        if ((frame_count == 0U) ||
-            (frame_count == sbus_instance.last_proc_frame_count))
+        if ((frame_count == 0U) || (frame_count == sbus_instance.last_proc_frame_count))
         {
             return 0U;
         }
@@ -193,6 +193,11 @@ uint8_t SBUS_Task_Handler(void)
     }
 
     return 0U;
+}
+
+void Sbus_RegisterReadyTask(TaskHandle_t task_handle)
+{
+    remote_sbus_ready_task = task_handle;
 }
 
 /* ========================== 初始化 ========================== */

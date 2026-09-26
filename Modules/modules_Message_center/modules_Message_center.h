@@ -10,7 +10,8 @@
 #define MY_NEW_UAV_BAICE_FRAMEWORK_MODULES_MESSAGE_CENTER_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <stdint.h>
@@ -27,23 +28,23 @@ extern "C" {
  * ================================================================ */
 
 #ifndef MAX_TOPICS
-#define MAX_TOPICS              32U     /* 系统最多支持注册的主题（Topic）数量 */
+#define MAX_TOPICS 32U /* 系统最多支持注册的主题（Topic）数量 */
 #endif
 
 #ifndef MAX_SUBSCRIBERS
-#define MAX_SUBSCRIBERS         32U     /* 全局系统中最多允许存在的订阅者实例总数 */
+#define MAX_SUBSCRIBERS 32U /* 全局系统中最多允许存在的订阅者实例总数 */
 #endif
 
 #ifndef MAX_SUBS_PER_TOPIC
-#define MAX_SUBS_PER_TOPIC      8U      /* 单个主题最多允许被多少个订阅者同时订阅 */
+#define MAX_SUBS_PER_TOPIC 8U /* 单个主题最多允许被多少个订阅者同时订阅 */
 #endif
 
 #ifndef MAX_TOPIC_NAME_LEN
-#define MAX_TOPIC_NAME_LEN      31U     /* 主题名称的最大长度（不含结尾的 '\0'） */
+#define MAX_TOPIC_NAME_LEN 31U /* 主题名称的最大长度（不含结尾的 '\0'） */
 #endif
 
 #ifndef DATA_BUF_SIZE
-#define DATA_BUF_SIZE           256U    /* 单个主题单次传输数据的最大字节数 */
+#define DATA_BUF_SIZE 256U /* 单个主题单次传输数据的最大字节数 */
 #endif
 
 #ifndef Message_PAYLOAD_POOL_SIZE
@@ -59,7 +60,7 @@ extern "C" {
 /* ================================================================
  * 结构体前向声明
  * ================================================================ */
-typedef struct Publisher Publisher_t;
+typedef struct Publisher  Publisher_t;
 typedef struct Subscriber Subscriber_t;
 
 /* ================================================================
@@ -69,13 +70,14 @@ typedef struct Subscriber Subscriber_t;
  * Publisher 拥有该 Topic 唯一的一块物理数据缓存（data_ptr）。
  * 所有的 Subscriber 在读取数据时，都是从这块唯一的缓存中拷贝数据。
  * ================================================================ */
-struct Publisher {
-    char          topic_name[MAX_TOPIC_NAME_LEN + 1U];  /* 主题名称，系统查找的唯一键值 */
-    uint16_t      data_len;                              /* 约定的数据包长度（字节） */
-    uint16_t      sub_count;                             /* 当前已订阅该主题的订阅者数量 */
-    uint8_t      *data_ptr;                              /* 指向静态分配的共享数据缓存区 */
-    SeqLock_t     seqlock;                               /* 底层序列锁，保护并发读写的一致性 */
-    Subscriber_t *subs[MAX_SUBS_PER_TOPIC];              /* 订阅者指针数组，记录关注者 */
+struct Publisher
+{
+    char          topic_name[MAX_TOPIC_NAME_LEN + 1U]; /* 主题名称，系统查找的唯一键值 */
+    uint16_t      data_len;                            /* 约定的数据包长度（字节） */
+    uint16_t      sub_count;                           /* 当前已订阅该主题的订阅者数量 */
+    uint8_t      *data_ptr;                            /* 指向静态分配的共享数据缓存区 */
+    SeqLock_t     seqlock;                             /* 底层序列锁，保护并发读写的一致性 */
+    Subscriber_t *subs[MAX_SUBS_PER_TOPIC];            /* 订阅者指针数组，记录关注者 */
 };
 
 /* ================================================================
@@ -84,10 +86,11 @@ struct Publisher {
  * @note 订阅者本身不占用独立的数据缓存，只相当于一个“游标”，
  * 记录了自己当前读取到的数据版本号以及挂起状态。
  * ================================================================ */
-struct Subscriber {
-    Publisher_t  *pub;              /* 指向关联的目标发布者 */
-    uint32_t      last_read_seq;    /* 记录上次成功读取到的序列锁版本号 */
-    TaskHandle_t  waiting_task;     /* 阻塞等待机制：记录调用阻塞读的任务句柄 */
+struct Subscriber
+{
+    Publisher_t     *pub;           /* 指向关联的目标发布者 */
+    uint32_t         last_read_seq; /* 记录上次成功读取到的序列锁版本号 */
+    TaskHandle_t     waiting_task;  /* 阻塞等待机制：记录调用阻塞读的任务句柄 */
     volatile uint8_t notify_flag;   /* 唤醒标志：1表示该订阅者正在挂起等待新数据 */
 };
 

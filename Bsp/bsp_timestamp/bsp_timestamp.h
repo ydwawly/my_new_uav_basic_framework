@@ -62,5 +62,4 @@ float Bsp_DWT_Get_DeltaT(uint32_t *last_cycle);
  */
 void Bsp_Timestamp_Update(void);
 
-
 #endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_TIMESTAMP_H

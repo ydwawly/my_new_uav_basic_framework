@@ -10,15 +10,19 @@
 #include "task.h"
 /* ========================== 私有变量 ========================== */
 
-static uint8_t usart_count = 0U;
+static uint8_t        usart_count                      = 0U;
 static USARTInstance *usart_instance[DEVICE_USART_CNT] = {NULL};
 
 /* ========================== 私有函数声明 ========================== */
 
-static void USARTNormalRxHandler(USARTInstance *inst, uint16_t size);
-static void USARTCircularRxHandler(USARTInstance *inst, uint16_t dma_pos);
-static uint8_t USARTIsDMACircular(USARTInstance *inst);
-static void USARTClearErrors(USARTInstance *inst);
+static void           USARTNormalRxHandler(USARTInstance *inst, uint16_t size);
+static void           USARTCircularRxHandler(USARTInstance *inst, uint16_t dma_pos);
+static void           USARTClearErrors(USARTInstance *inst);
+static uint8_t        USARTDmaModeMatches(USART_RX_MODE rx_mode, const DMA_HandleTypeDef *hdmarx);
+static uint8_t        USARTServiceConfigIsValid(const USARTInstance *instance);
+static uint8_t        USARTRegisterConfigIsValid(const USART_Init_Config_s *init_config);
+static USARTInstance *USARTAllocateInstance(const USART_Init_Config_s *init_config);
+static void           USARTReleaseInstance(USARTInstance *instance);
 
 /* ========================== 公有接口实现 ========================== */
 
@@ -27,175 +31,238 @@ static void USARTClearErrors(USARTInstance *inst);
  */
 static void USARTClearErrors(USARTInstance *inst)
 {
-    volatile uint32_t dummy;
-
-    /* 清除 ORE / NE / FE / PE 标志 */
-    __HAL_UART_CLEAR_FLAG(inst->usart_handle,
-                          UART_CLEAR_OREF |
-                          UART_CLEAR_NEF  |
-                          UART_CLEAR_FEF  |
-                          UART_CLEAR_PEF);
-
-    /* 读一次 RDR 冲刷残留字节 */
-    dummy = inst->usart_handle->Instance->RDR;
-    (void)dummy;
+    /*
+     * STM32H7 通过写 ICR 清除 ORE/NE/FE/PE，不需要再读取 RDR。
+     * 重启接收时主动读 RDR 反而可能吞掉已经到达的首字节。
+     */
+    __HAL_UART_CLEAR_FLAG(inst->usart_handle, UART_CLEAR_OREF | UART_CLEAR_NEF | UART_CLEAR_FEF | UART_CLEAR_PEF);
 }
 
 /**
- * @brief 检查 DMA 是否配置为 Circular 模式
+ * @brief 检查软件接收模式是否与 CubeMX DMA 模式一致
  */
-static uint8_t USARTIsDMACircular(USARTInstance *inst)
+static uint8_t USARTDmaModeMatches(USART_RX_MODE rx_mode, const DMA_HandleTypeDef *hdmarx)
 {
-    if (inst->usart_handle->hdmarx == NULL)
+    if ((hdmarx == NULL) || (hdmarx->Instance == NULL))
     {
         return 0U;
     }
-    return (inst->usart_handle->hdmarx->Init.Mode == DMA_CIRCULAR) ? 1U : 0U;
+
+    if (rx_mode == USART_RX_MODE_NORMAL)
+    {
+        return (hdmarx->Init.Mode == DMA_NORMAL) ? 1U : 0U;
+    }
+
+    if (rx_mode == USART_RX_MODE_CIRCULAR)
+    {
+        return (hdmarx->Init.Mode == DMA_CIRCULAR) ? 1U : 0U;
+    }
+
+    return 0U;
 }
 
-void USARTServiceInit(USARTInstance *instance)
+/**
+ * @brief 检查已创建串口实例启动 DMA 接收所需的全部资源
+ */
+static uint8_t USARTServiceConfigIsValid(const USARTInstance *instance)
 {
-    HAL_StatusTypeDef ret;
-
-    if (instance == NULL || instance->usart_handle == NULL)
+    if ((instance == NULL) || (instance->usart_handle == NULL) || (instance->usart_handle->Instance == NULL))
     {
-        return;
+        RTTERROR("[bsp_usart] ServiceInit failed: invalid instance or UART.");
+        return 0U;
     }
 
-    USARTClearErrors(instance);
-
-    if (instance->rx_mode == USART_RX_MODE_CIRCULAR)
+    if ((instance->recv_buff == NULL) || (instance->recv_buff_size == 0U))
     {
-        /*
-         * Circular 模式：DMA 持续循环写入 recv_buff，
-         * 通过 HT / TC / IDLE 三类事件触发位置差分处理。
-         */
-        instance->last_dma_pos = 0U;
+        RTTERROR("[bsp_usart] ServiceInit failed: invalid RX buffer.");
+        return 0U;
+    }
 
-        ret = HAL_UARTEx_ReceiveToIdle_DMA(instance->usart_handle,
-                                           instance->recv_buff,
-                                           instance->recv_buff_size);
-        if (ret != HAL_OK)
-        {
-            RTTERROR("[bsp_usart] CIRCULAR DMA start failed, HAL ret=%d", (int)ret);
-            return;
-        }
-    }
-    else
+    if (!USARTDmaModeMatches(instance->rx_mode, instance->usart_handle->hdmarx))
     {
-        /*
-         * Normal 模式：等待一帧（IDLE 触发），回调后重新启动。
-         */
-        ret = HAL_UARTEx_ReceiveToIdle_DMA(instance->usart_handle,
-                                           instance->recv_buff,
-                                           instance->recv_buff_size);
-        if (ret != HAL_OK)
-        {
-            RTTERROR("[bsp_usart] NORMAL DMA start failed, HAL ret=%d", (int)ret);
-            return;
-        }
-        __HAL_DMA_DISABLE_IT(instance->usart_handle->hdmarx, DMA_IT_HT);
+        RTTERROR("[bsp_usart] ServiceInit failed: software RX mode does not match DMA mode.");
+        return 0U;
     }
+
+    return 1U;
 }
 
-USARTInstance *USARTRegister(USART_Init_Config_s *init_config)
+/**
+ * @brief 检查注册参数、实例容量、重复句柄和 DMA 模式
+ */
+static uint8_t USARTRegisterConfigIsValid(const USART_Init_Config_s *init_config)
 {
-    USARTInstance *instance;
-    uint8_t        i;
-
-    /* ---------- 参数合法性检查 ---------- */
-    if (init_config == NULL || init_config->usart_handle == NULL)
+    if ((init_config == NULL) || (init_config->usart_handle == NULL) || (init_config->usart_handle->Instance == NULL))
     {
-        RTTERROR("[bsp_usart] Register failed: NULL config or handle.");
-        return NULL;
+        RTTERROR("[bsp_usart] Register failed: invalid config or uninitialized UART.");
+        return 0U;
     }
 
-    if (init_config->recv_buff_size == 0U ||
-        init_config->recv_buff_size > USART_RXBUFF_LIMIT)
+    if ((init_config->recv_buff_size == 0U) || (init_config->recv_buff_size > USART_RXBUFF_LIMIT))
     {
-        RTTERROR("[bsp_usart] Register failed: recv_buff_size=%u out of range.",
-                 (unsigned)init_config->recv_buff_size);
-        return NULL;
+        RTTERROR("[bsp_usart] Register failed: recv_buff_size=%u out of range.", (unsigned)init_config->recv_buff_size);
+        return 0U;
     }
 
     if (usart_count >= DEVICE_USART_CNT)
     {
         RTTERROR("[bsp_usart] Register failed: max instance count reached.");
         configASSERT(0);
-        return NULL;
+        return 0U;
     }
 
-    for (i = 0U; i < usart_count; i++) {
+    for (uint8_t i = 0U; i < usart_count; i++)
+    {
         if (usart_instance[i]->usart_handle == init_config->usart_handle)
         {
             RTTERROR("[bsp_usart] Register failed: handle already registered.");
             configASSERT(0);
-            return NULL;
+            return 0U;
         }
     }
 
-    if (init_config->rx_mode == USART_RX_MODE_CIRCULAR)
+    if (!USARTDmaModeMatches(init_config->rx_mode, init_config->usart_handle->hdmarx))
     {
-        if (init_config->usart_handle->hdmarx == NULL ||
-            init_config->usart_handle->hdmarx->Init.Mode != DMA_CIRCULAR)
-        {
-            RTTERROR("[bsp_usart] Register failed: CIRCULAR mode requires DMA Circular.");
-            configASSERT(0);
-            return NULL;
-        }
+        RTTERROR("[bsp_usart] Register failed: software RX mode does not match DMA mode.");
+        return 0U;
+    }
+    return 1U;
+}
+
+/**
+ * @brief 释放普通堆资源
+ *
+ * DMA 接收缓冲区来自单向递增内存池，启动阶段分配后不能单独归还。
+ */
+static void USARTReleaseInstance(USARTInstance *instance)
+{
+    if (instance == NULL)
+    {
+        return;
     }
 
-    /* ---------- 分配实例内存 ---------- */
-    instance = (USARTInstance *)pvPortMalloc(sizeof(USARTInstance));
+    if (instance->process_buff != NULL)
+    {
+        vPortFree(instance->process_buff);
+    }
+    vPortFree(instance);
+}
+
+/**
+ * @brief 分配实例及其接收缓冲区，并复制只读配置
+ */
+static USARTInstance *USARTAllocateInstance(const USART_Init_Config_s *init_config)
+{
+    USARTInstance *instance = (USARTInstance *)pvPortMalloc(sizeof(USARTInstance));
     if (instance == NULL)
     {
         configASSERT(0);
         return NULL;
     }
 
-    /* ---------- 填写基本字段 ---------- */
+    memset(instance, 0, sizeof(*instance));
     instance->usart_handle   = init_config->usart_handle;
     instance->recv_buff_size = init_config->recv_buff_size;
-    instance->event_callback = init_config->event_callback; /* 新增：绑定统一事件回调 */
+    instance->event_callback = init_config->event_callback;
     instance->rx_mode        = init_config->rx_mode;
-    instance->last_dma_pos   = 0U;
 
-    /* ---------- 分配 DMA 接收缓冲区 ---------- */
     instance->recv_buff = (uint8_t *)BSP_DMA_Malloc(instance->recv_buff_size);
     if (instance->recv_buff == NULL)
     {
-        configASSERT(0);
+        USARTReleaseInstance(instance);
         return NULL;
     }
     memset(instance->recv_buff, 0, instance->recv_buff_size);
 
-    /* ---------- 分配中间处理缓冲区 (仅 CIRCULAR) ---------- */
     if (instance->rx_mode == USART_RX_MODE_CIRCULAR)
     {
         instance->process_buff = (uint8_t *)pvPortMalloc(instance->recv_buff_size);
         if (instance->process_buff == NULL)
         {
-            configASSERT(0);
+            USARTReleaseInstance(instance);
             return NULL;
         }
     }
-
-    /* ---------- 注册并启动 ---------- */
-    usart_instance[usart_count++] = instance;
-    USARTServiceInit(instance);
-
     return instance;
 }
 
-void USARTSend(USARTInstance    *instance,
-               uint8_t          *send_buf,
-               uint16_t          send_size,
-               USART_TRANSFER_MODE mode)
+/**
+ * @brief 启动或重新启动串口 DMA 接收服务
+ */
+uint8_t USARTServiceInit(USARTInstance *instance)
+{
+    if (!USARTServiceConfigIsValid(instance))
+    {
+        return 0U;
+    }
+
+    UART_HandleTypeDef *huart = instance->usart_handle;
+
+    /*
+     * ReceiveToIdle 已运行时 RxState 为 BUSY_RX。重复调用只会得到 HAL_BUSY，
+     * 因此直接视为接收服务已经正常运行，避免错误日志持续刷屏。
+     */
+    if (huart->RxState == HAL_UART_STATE_BUSY_RX)
+    {
+        return 1U;
+    }
+
+    USARTClearErrors(instance);
+
+    if (instance->rx_mode == USART_RX_MODE_CIRCULAR)
+    {
+        /* Circular 模式通过 HT、TC、IDLE 三类事件触发位置差分处理。 */
+        instance->last_dma_pos      = 0U;
+        const HAL_StatusTypeDef ret = HAL_UARTEx_ReceiveToIdle_DMA(huart, instance->recv_buff,
+                                                                   instance->recv_buff_size);
+        if (ret != HAL_OK)
+        {
+            RTTERROR("[bsp_usart] CIRCULAR DMA start failed, HAL ret=%d", (int)ret);
+            return 0U;
+        }
+        return 1U;
+    }
+
+    /* Normal 模式仅在 IDLE/TC 后处理一帧，因此关闭半传输中断。 */
+    const HAL_StatusTypeDef ret = HAL_UARTEx_ReceiveToIdle_DMA(huart, instance->recv_buff, instance->recv_buff_size);
+    if (ret != HAL_OK)
+    {
+        RTTERROR("[bsp_usart] NORMAL DMA start failed: ret=%d RxState=%d Error=0x%08X", (int)ret, (int)huart->RxState,
+                 (unsigned)huart->ErrorCode);
+        return 0U;
+    }
+    __HAL_DMA_DISABLE_IT(huart->hdmarx, DMA_IT_HT);
+    return 1U;
+}
+
+USARTInstance *USARTRegister(USART_Init_Config_s *init_config)
+{
+    if (!USARTRegisterConfigIsValid(init_config))
+    {
+        return NULL;
+    }
+
+    USARTInstance *instance = USARTAllocateInstance(init_config);
+    if (instance == NULL)
+    {
+        return NULL;
+    }
+
+    usart_instance[usart_count++] = instance;
+    if (USARTServiceInit(instance) == 0U)
+    {
+        usart_instance[--usart_count] = NULL;
+        USARTReleaseInstance(instance);
+        return NULL;
+    }
+    return instance;
+}
+
+void USARTSend(USARTInstance *instance, uint8_t *send_buf, uint16_t send_size, USART_TRANSFER_MODE mode)
 {
     HAL_StatusTypeDef ret = HAL_OK;
 
-    if (instance == NULL || instance->usart_handle == NULL ||
-        send_buf == NULL || send_size == 0U)
+    if (instance == NULL || instance->usart_handle == NULL || send_buf == NULL || send_size == 0U)
     {
         return;
     }
@@ -232,7 +299,9 @@ uint8_t USARTIsTransmitReady(USARTInstance *instance)
     }
 
     return ((instance->usart_handle->gState == HAL_UART_STATE_READY) ||
-            (instance->usart_handle->gState == HAL_UART_STATE_BUSY_RX)) ? 1U : 0U;
+            (instance->usart_handle->gState == HAL_UART_STATE_BUSY_RX))
+               ? 1U
+               : 0U;
 }
 
 /* ========================== 私有处理函数 ========================== */
@@ -244,7 +313,7 @@ static void USARTNormalRxHandler(USARTInstance *inst, uint16_t size)
 {
     if (size == 0U)
     {
-        USARTServiceInit(inst);
+        (void)USARTServiceInit(inst);
         return;
     }
 
@@ -254,7 +323,7 @@ static void USARTNormalRxHandler(USARTInstance *inst, uint16_t size)
         inst->event_callback(inst, USART_EVENT_RX_CPLT, inst->recv_buff, size);
     }
 
-    USARTServiceInit(inst);
+    (void)USARTServiceInit(inst);
 }
 
 /**
@@ -279,9 +348,7 @@ static void USARTCircularRxHandler(USARTInstance *inst, uint16_t dma_pos)
     if (dma_pos > inst->last_dma_pos)
     {
         copy_len = (uint16_t)(dma_pos - inst->last_dma_pos);
-        memcpy(inst->process_buff,
-               &inst->recv_buff[inst->last_dma_pos],
-               copy_len);
+        memcpy(inst->process_buff, &inst->recv_buff[inst->last_dma_pos], copy_len);
     }
     else
     {
@@ -289,12 +356,8 @@ static void USARTCircularRxHandler(USARTInstance *inst, uint16_t dma_pos)
         head_part = dma_pos;
         copy_len  = (uint16_t)(tail_part + head_part);
 
-        memcpy(inst->process_buff,
-               &inst->recv_buff[inst->last_dma_pos],
-               tail_part);
-        memcpy(&inst->process_buff[tail_part],
-               &inst->recv_buff[0],
-               head_part);
+        memcpy(inst->process_buff, &inst->recv_buff[inst->last_dma_pos], tail_part);
+        memcpy(&inst->process_buff[tail_part], &inst->recv_buff[0], head_part);
     }
 
     inst->last_dma_pos = dma_pos;
@@ -313,8 +376,11 @@ static void USARTCircularRxHandler(USARTInstance *inst, uint16_t dma_pos)
  */
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 {
-    uint8_t       i;
-    USARTInstance *inst;
+    uint8_t                     i;
+    USARTInstance              *inst;
+    HAL_UART_RxEventTypeTypeDef event_type;
+
+    event_type = HAL_UARTEx_GetRxEventType(huart);
 
     for (i = 0U; i < usart_count; i++)
     {
@@ -327,10 +393,22 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 
         if (inst->rx_mode == USART_RX_MODE_NORMAL)
         {
+            /*
+             * HT 时 DMA 仍处于 BUSY_RX，不能重新启动。
+             * Normal 模式只处理 IDLE 和 TC。
+             */
+            if (event_type == HAL_UART_RXEVENT_HT)
+            {
+                return;
+            }
+
             USARTNormalRxHandler(inst, size);
-        } else {
+        }
+        else
+        {
             USARTCircularRxHandler(inst, size);
         }
+
         return;
     }
 }
@@ -361,7 +439,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
  */
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-    uint8_t       i;
+    uint8_t        i;
     USARTInstance *inst;
 
     for (i = 0U; i < usart_count; i++)
@@ -383,7 +461,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 
         /* 硬件层面的错误恢复：中止并重启接收 */
         HAL_UART_AbortReceive(huart);
-        USARTServiceInit(inst);
+        (void)USARTServiceInit(inst);
         return;
     }
 }

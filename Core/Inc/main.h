@@ -23,62 +23,63 @@
 #define __MAIN_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+    /* Private includes ----------------------------------------------------------*/
+    /* USER CODE BEGIN Includes */
 
-/* USER CODE END Includes */
+    /* USER CODE END Includes */
 
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
+    /* Exported types ------------------------------------------------------------*/
+    /* USER CODE BEGIN ET */
 
-/* USER CODE END ET */
+    /* USER CODE END ET */
 
-/* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
+    /* Exported constants --------------------------------------------------------*/
+    /* USER CODE BEGIN EC */
 
-/* USER CODE END EC */
+    /* USER CODE END EC */
 
-/* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
+    /* Exported macro ------------------------------------------------------------*/
+    /* USER CODE BEGIN EM */
 
-/* USER CODE END EM */
+    /* USER CODE END EM */
 
-/* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
+    /* Exported functions prototypes ---------------------------------------------*/
+    void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define ACC_INT_Pin GPIO_PIN_14
-#define ACC_INT_GPIO_Port GPIOC
-#define ACC_INT_EXTI_IRQn EXTI15_10_IRQn
-#define GYRO_INT_Pin GPIO_PIN_15
-#define GYRO_INT_GPIO_Port GPIOC
-#define GYRO_INT_EXTI_IRQn EXTI15_10_IRQn
-#define CS_BMI270_Pin GPIO_PIN_15
-#define CS_BMI270_GPIO_Port GPIOA
-#define SPL06_INT_Pin GPIO_PIN_0
-#define SPL06_INT_GPIO_Port GPIOD
-#define SPL06_INT_EXTI_IRQn EXTI0_IRQn
-#define CS2_ACCEL_Pin GPIO_PIN_4
-#define CS2_ACCEL_GPIO_Port GPIOD
-#define CS2_GYRO_Pin GPIO_PIN_5
-#define CS2_GYRO_GPIO_Port GPIOD
-#define BMI270_INT_Pin GPIO_PIN_7
+#define ACC_INT_Pin          GPIO_PIN_14
+#define ACC_INT_GPIO_Port    GPIOC
+#define ACC_INT_EXTI_IRQn    EXTI15_10_IRQn
+#define GYRO_INT_Pin         GPIO_PIN_15
+#define GYRO_INT_GPIO_Port   GPIOC
+#define GYRO_INT_EXTI_IRQn   EXTI15_10_IRQn
+#define CS_BMI270_Pin        GPIO_PIN_15
+#define CS_BMI270_GPIO_Port  GPIOA
+#define SPL06_INT_Pin        GPIO_PIN_0
+#define SPL06_INT_GPIO_Port  GPIOD
+#define SPL06_INT_EXTI_IRQn  EXTI0_IRQn
+#define CS2_ACCEL_Pin        GPIO_PIN_4
+#define CS2_ACCEL_GPIO_Port  GPIOD
+#define CS2_GYRO_Pin         GPIO_PIN_5
+#define CS2_GYRO_GPIO_Port   GPIOD
+#define BMI270_INT_Pin       GPIO_PIN_7
 #define BMI270_INT_GPIO_Port GPIOB
 #define BMI270_INT_EXTI_IRQn EXTI9_5_IRQn
 
-/* USER CODE BEGIN Private defines */
+    /* USER CODE BEGIN Private defines */
 
-/* USER CODE END Private defines */
+    /* USER CODE END Private defines */
 
 #ifdef __cplusplus
 }

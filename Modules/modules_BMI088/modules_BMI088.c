@@ -3,6 +3,8 @@
 //
 
 #include "modules_BMI088.h"
+#include "bmi088_fixed_calibration_generated.h"
+#include "bmi088_temperature_calibration_generated.h"
 
 #include <string.h>
 
@@ -12,6 +14,7 @@
 
 /* ===================== 全局唯一实例 ===================== */
 static BMI088_Instance_t bmi088;
+static TaskHandle_t      bmi088_ready_task = NULL;
 /* 在 .c 文件内部定义静态的 DMA 专属内存，并强制分配到非 Cache 段 */
 static uint8_t bmi088_gyro_dma_tx_buf[BMI088_GYRO_DMA_BUF_SIZE] DMA_BUFFER;
 static uint8_t bmi088_gyro_dma_rx_buf[2][BMI088_GYRO_DMA_BUF_SIZE] DMA_BUFFER;
@@ -36,6 +39,10 @@ static void BMI088_Accel_DMA_Callback(SPIInstance *ins, SPI_Event_e event);
 /* 数据解析 */
 static void BMI088_ParseGyro(const uint8_t *buf);
 static void BMI088_ParseAccel(const uint8_t *buf);
+static void BMI088_ApplyGyroCalibration(void);
+static void BMI088_UpdateStabilityStats(void);
+static void BMI088_ApplyFixedCalibration(const float matrix[3][3], const float bias[3], const float input[3],
+                                         float output[3]);
 
 /* ===================== 阻塞式底层读写 ===================== */
 
@@ -167,28 +174,51 @@ static BMI088_Status_e BMI088_Accel_Init(void)
     BMI088_Accel_WriteReg(ACC_PWR_CTRL_REG, ACC_PWR_CTRL_ON);
     Bsp_Delay_ms(50); // 开启后等待 > 50ms
 
-    /* 6. 配置 ODR 和带宽 */
-    BMI088_Accel_WriteReg(ACC_CONF_REG, ACC_CONF_ODR_800HZ);
+    /* 6. 保持原有 800 Hz ODR，不把 SPI 通信提速误当成传感器采样率修改。 */
+    if (BMI088_Accel_WriteReg(ACC_CONF_REG, ACC_CONF_ODR_800HZ) != HAL_OK)
+    {
+        return BMI088_ERR_SPI;
+    }
     Bsp_Delay_ms(1);
 
-    /* 7. 配置量程 ±6g */
-    BMI088_Accel_WriteReg(ACC_RANGE_REG, ACC_RANGE_6G);
+    uint8_t accel_conf = 0U;
+    if ((BMI088_Accel_ReadReg(ACC_CONF_REG, &accel_conf) != HAL_OK) || (accel_conf != ACC_CONF_ODR_800HZ))
+    {
+        return BMI088_ERR_INIT;
+    }
+    bmi088.configured_accel_rate_hz = BMI088_ACCEL_OUTPUT_RATE_HZ;
+
+    /* 7. 配置量程 ±24g，避免强桨振动使加速度原始数据削顶。 */
+    if (BMI088_Accel_WriteReg(ACC_RANGE_REG, ACC_RANGE_24G) != HAL_OK)
+    {
+        return BMI088_ERR_SPI;
+    }
     Bsp_Delay_ms(1);
+
+    uint8_t accel_range = 0U;
+    if ((BMI088_Accel_ReadReg(ACC_RANGE_REG, &accel_range) != HAL_OK) || (accel_range != ACC_RANGE_24G))
+    {
+        return BMI088_ERR_INIT;
+    }
 
     /* 8. 配置 INT1 引脚：推挽输出，高电平有效 */
     BMI088_Accel_WriteReg(ACC_INT1_IO_CTRL_REG, ACC_INT1_IO_PP_AL);
     Bsp_Delay_ms(1);
 
-    /* 9. 将 DRDY 映射到 INT1 */
-    BMI088_Accel_WriteReg(ACC_INT1_INT2_MAP_DATA_REG, ACC_INT1_DRDY_MAP);
+    /*
+     * 9. 当前六轴读取统一由 1 kHz 陀螺 DRDY 触发，随后 DMA 级联读取加速度计。
+     * 不再把 800 Hz 加速度 DRDY 映射到 INT1，避免共享 EXTI15_10 每秒产生
+     * 约 800 次无实际数据处理的冗余中断。
+     */
+    BMI088_Accel_WriteReg(ACC_INT1_INT2_MAP_DATA_REG, 0U);
     Bsp_Delay_ms(1);
 
     /*
      * 设置灵敏度系数
-     * ±6g 量程：1 LSB = 6 / 32768 * 9.80665 m/s²
+     * ±24g 量程：1 LSB = 24 / 32768 * 9.80665 m/s²
      * 加速度计16位有符号，满量程 ±range_g
      */
-    bmi088.accel_sensitivity = 6.0f / 32768.0f * 9.80665f;
+    bmi088.accel_sensitivity = 24.0f / 32768.0f * 9.80665f;
 
     return BMI088_OK;
 }
@@ -222,9 +252,24 @@ static BMI088_Status_e BMI088_Gyro_Init(void)
     BMI088_Gyro_WriteReg(GYRO_RANGE_REG, GYRO_RANGE_2000DPS);
     Bsp_Delay_ms(1);
 
-    /* 4. 设置 ODR 和带宽：1000Hz ODR, 116Hz BW */
-    BMI088_Gyro_WriteReg(GYRO_BANDWIDTH_REG, GYRO_BW_116HZ_1000HZ_ODR);
+    /* 4. 保持原有 1000 Hz ODR 和 116 Hz 带宽。 */
+    if (BMI088_Gyro_WriteReg(GYRO_BANDWIDTH_REG, GYRO_BW_116HZ_1000HZ_ODR) != HAL_OK)
+    {
+        return BMI088_ERR_SPI;
+    }
     Bsp_Delay_ms(1);
+
+    uint8_t gyro_conf = 0U;
+    /*
+     * GYRO_BANDWIDTH 的低 3 位才是带宽/ODR 配置位。实机读回值为 0x82，
+     * 其中低 3 位 0x02 与写入值一致，不能因保留位 bit7 为 1 而误报初始化失败。
+     */
+    if ((BMI088_Gyro_ReadReg(GYRO_BANDWIDTH_REG, &gyro_conf) != HAL_OK) ||
+        ((gyro_conf & GYRO_BANDWIDTH_CONFIG_MASK) != GYRO_BW_116HZ_1000HZ_ODR))
+    {
+        return BMI088_ERR_INIT;
+    }
+    bmi088.configured_gyro_rate_hz = BMI088_GYRO_OUTPUT_RATE_HZ;
 
     /* 5. 正常工作模式 */
     BMI088_Gyro_WriteReg(GYRO_LPM1_REG, GYRO_LPM1_NORMAL);
@@ -246,7 +291,7 @@ static BMI088_Status_e BMI088_Gyro_Init(void)
      * 设置灵敏度系数
      * ±2000 dps 量程：1 LSB = 2000 / 32768 deg/s
      */
-    bmi088.gyro_sensitivity = ( 2000.0f / 32768.0f) *  DEG_TO_RAD;
+    bmi088.gyro_sensitivity = (2000.0f / 32768.0f) * DEG_TO_RAD;
 
     return BMI088_OK;
 }
@@ -283,21 +328,20 @@ static void BMI088_Gyro_DMA_Callback(SPIInstance *ins, SPI_Event_e event)
 
         uint8_t write_idx = bmi088.accel_buf_idx;
 
-        HAL_StatusTypeDef ret = SPITransRecv(
-            bmi088.spi_accel,
-            bmi088.accel_tx_buf,
-            bmi088.accel_rx_buf[write_idx],
-            BMI088_ACCEL_DMA_BUF_SIZE);
+        HAL_StatusTypeDef ret = SPITransRecv(bmi088.spi_accel, bmi088.accel_tx_buf, bmi088.accel_rx_buf[write_idx],
+                                             BMI088_ACCEL_DMA_BUF_SIZE);
 
         if (ret != HAL_OK)
         {
             /* 启动失败，标记空闲，下一个 DRDY 周期重试 */
+            bmi088.runtime_stats.dma_start_error_count++;
             bmi088.dma_state = BMI088_DMA_IDLE;
         }
     }
     else if (event == SPI_EVENT_ERROR)
     {
         /* SPI 错误恢复 */
+        bmi088.runtime_stats.gyro_dma_error_count++;
         bmi088.dma_state = BMI088_DMA_IDLE;
     }
 }
@@ -316,13 +360,43 @@ static void BMI088_Accel_DMA_Callback(SPIInstance *ins, SPI_Event_e event)
 
         /* 置位更新标志 */
         bmi088.data.accel_update_flag = 1;
+
+        /*
+         * 六轴DMA已经全部完成。
+         * 先将状态机恢复为空闲，再直接通知姿态任务。
+         */
+        bmi088.runtime_stats.dma_complete_count++;
+        bmi088.dma_state = BMI088_DMA_IDLE;
+
+        if (bmi088_ready_task != NULL)
+        {
+            BaseType_t higher_priority_task_woken = pdFALSE;
+
+            vTaskNotifyGiveFromISR(bmi088_ready_task, &higher_priority_task_woken);
+
+            portYIELD_FROM_ISR(higher_priority_task_woken);
+        }
+
+        return;
     }
 
-    /* 无论成功还是失败，DMA 状态机都回到空闲，允许下次 DRDY 触发 */
+    /* DMA错误时恢复为空闲，等待下一次GYRO DRDY重试。 */
+    bmi088.runtime_stats.accel_dma_error_count++;
     bmi088.dma_state = BMI088_DMA_IDLE;
 }
 
 /* ===================== 数据解析 ===================== */
+
+static void BMI088_ApplyFixedCalibration(const float matrix[3][3], const float bias[3], const float input[3],
+                                         float output[3])
+{
+    const float centered[3] = {input[0] - bias[0], input[1] - bias[1], input[2] - bias[2]};
+
+    for (uint32_t row = 0U; row < 3U; row++)
+    {
+        output[row] = matrix[row][0] * centered[0] + matrix[row][1] * centered[1] + matrix[row][2] * centered[2];
+    }
+}
 
 /**
  * @brief 解析陀螺仪 DMA 缓冲区
@@ -339,45 +413,133 @@ static void BMI088_ParseGyro(const uint8_t *buf)
     bmi088.data.gyro_raw[1] = (int16_t)((uint16_t)buf[4] << 8 | buf[3]);
     bmi088.data.gyro_raw[2] = (int16_t)((uint16_t)buf[6] << 8 | buf[5]);
 
-    bmi088.data.gyro[IMU_Y] = -bmi088.data.gyro_raw[0] * bmi088.gyro_sensitivity;
-    bmi088.data.gyro[IMU_X] = -bmi088.data.gyro_raw[1] * bmi088.gyro_sensitivity;
-    bmi088.data.gyro[IMU_Z] = -bmi088.data.gyro_raw[2] * bmi088.gyro_sensitivity;
+    bmi088.data.gyro_uncalibrated[IMU_Y] = -bmi088.data.gyro_raw[0] * bmi088.gyro_sensitivity;
+    bmi088.data.gyro_uncalibrated[IMU_X] = -bmi088.data.gyro_raw[1] * bmi088.gyro_sensitivity;
+    bmi088.data.gyro_uncalibrated[IMU_Z] = -bmi088.data.gyro_raw[2] * bmi088.gyro_sensitivity;
 }
 
 /**
  * @brief 解析加速度计 DMA 缓冲区
  *
- * 缓冲区布局（13 字节）：
+ * 缓冲区布局（20 字节）：
  *   [0]       = dummy（SPI 地址字节返回）
  *   [1]       = dummy（加速度计额外 dummy 字节）
  *   [2][3]    = ACC_X (LSB, MSB)
  *   [4][5]    = ACC_Y (LSB, MSB)
  *   [6][7]    = ACC_Z (LSB, MSB)
  *   [8][9][10]= SENSORTIME (byte0, byte1, byte2)
- *   [11][12]  = TEMP (MSB, LSB)  -- 从 TEMP_MSB=0x22 开始读
+ *   [11]~[17] = 0x1B~0x21 的状态/保留寄存器
+ *   [18][19]  = TEMP (MSB, LSB)，对应 0x22/0x23
  *
  * 注意：这里的布局取决于 accel_tx_buf 发出的起始寄存器地址
- *       我们从 ACC_X_LSB(0x12) 开始连续读 12 字节：
- *       0x12~0x17 (6B accel) + 0x18~0x1A (3B sensortime) ...
- *       温度寄存器不连续(0x22)，所以在这个实现中我们只读加速度+时间
- *       温度可以单独低频读取
- *
- * 简化版：只读 6 字节加速度数据
- *   实际 tx_buf 长度 = 1(addr) + 1(dummy) + 6(data) = 8
+ *       从 ACC_X_LSB(0x12) 连续读到 TEMP_LSB(0x23)。跨过中间状态/保留
+ *       地址不会产生第二笔 SPI 事务，因此不会与 1 kHz DMA 状态机争用。
  */
 static void BMI088_ParseAccel(const uint8_t *buf)
 {
     /* 跳过 buf[0]=地址回显, buf[1]=dummy */
-    bmi088.data.accel_raw[0] = (int16_t)((uint16_t)buf[3] << 8 | buf[2]);
-    bmi088.data.accel_raw[1] = (int16_t)((uint16_t)buf[5] << 8 | buf[4]);
-    bmi088.data.accel_raw[2] = (int16_t)((uint16_t)buf[7] << 8 | buf[6]);
+    bmi088.data.accel_raw[0]      = (int16_t)((uint16_t)buf[3] << 8 | buf[2]);
+    bmi088.data.accel_raw[1]      = (int16_t)((uint16_t)buf[5] << 8 | buf[4]);
+    bmi088.data.accel_raw[2]      = (int16_t)((uint16_t)buf[7] << 8 | buf[6]);
+    bmi088.data.accel_sensor_time = (uint32_t)buf[8] | ((uint32_t)buf[9] << 8U) | ((uint32_t)buf[10] << 16U);
 
-    bmi088.data.accel[IMU_Y] = -bmi088.data.accel_raw[0] * bmi088.accel_sensitivity;
-    bmi088.data.accel[IMU_X] = -bmi088.data.accel_raw[1] * bmi088.accel_sensitivity;
-    bmi088.data.accel[IMU_Z] = -bmi088.data.accel_raw[2] * bmi088.accel_sensitivity;
+    const uint8_t  temperature_msb = buf[18];
+    const uint16_t temperature_u11 = ((uint16_t)temperature_msb << 3U) | ((uint16_t)buf[19] >> 5U);
+    bmi088.data.temp_raw           = (temperature_u11 > 1023U) ? (int16_t)((int32_t)temperature_u11 - 2048)
+                                                               : (int16_t)temperature_u11;
+    if (temperature_msb == TEMP_INVALID_MSB)
+    {
+        bmi088.data.temperature_valid = 0U;
+        bmi088.runtime_stats.temperature_invalid_count++;
+    }
+    else
+    {
+        bmi088.data.temperature       = (float)bmi088.data.temp_raw * 0.125f + 23.0f;
+        bmi088.data.temperature_valid = 1U;
+        bmi088.runtime_stats.temperature_valid_read_count++;
+    }
+
+    bmi088.data.accel_uncalibrated[IMU_Y] = -bmi088.data.accel_raw[0] * bmi088.accel_sensitivity;
+    bmi088.data.accel_uncalibrated[IMU_X] = -bmi088.data.accel_raw[1] * bmi088.accel_sensitivity;
+    bmi088.data.accel_uncalibrated[IMU_Z] = -bmi088.data.accel_raw[2] * bmi088.accel_sensitivity;
+    BMI088_ApplyFixedCalibration(bmi088_accel_matrix, bmi088_accel_bias_mps2, bmi088.data.accel_uncalibrated,
+                                 bmi088.data.accel);
+}
+
+/**
+ * @brief Apply candidate gyroscope temperature compensation, then LM calibration.
+ *
+ * Temperature drift was fitted in the mapped pre-LM frame recorded by the USB
+ * calibration stream. Keeping the correction before the fixed matrix preserves
+ * the coordinate relationship when a non-identity LM matrix is installed later.
+ * If no valid temperature has ever been received, fixed calibration still runs
+ * and the temperature term safely remains disabled.
+ */
+static void BMI088_ApplyGyroCalibration(void)
+{
+    float gyro_temperature_corrected[3] = {
+        bmi088.data.gyro_uncalibrated[0],
+        bmi088.data.gyro_uncalibrated[1],
+        bmi088.data.gyro_uncalibrated[2],
+    };
+
+#if (BMI088_ENABLE_GYRO_TEMPERATURE_COMPENSATION == 1U)
+    if ((bmi088.runtime_stats.temperature_valid_read_count > 0U) && Math_IsFinite(bmi088.data.temperature))
+    {
+        const float temperature_c = Math_ClampFloat(bmi088.data.temperature, bmi088_gyro_temp_minimum_c,
+                                                    bmi088_gyro_temp_maximum_c);
+        const float delta_t       = temperature_c - bmi088_gyro_temp_reference_c;
+        const float delta_t2      = delta_t * delta_t;
+
+        for (uint32_t axis = 0U; axis < 3U; axis++)
+        {
+            const float temperature_delta = bmi088_gyro_temp_c1_rps_per_c[axis] * delta_t +
+                                            bmi088_gyro_temp_c2_rps_per_c2[axis] * delta_t2;
+            gyro_temperature_corrected[axis] -= temperature_delta;
+        }
+    }
+#endif
+
+    BMI088_ApplyFixedCalibration(bmi088_gyro_matrix, bmi088_gyro_bias_rps, gyro_temperature_corrected,
+                                 bmi088.data.gyro);
+}
+
+/**
+ * @brief 低频抽取 IMU 数据并在线累计均值与方差
+ *
+ * @note 每 8 个样本更新一次，1 kHz 下统计频率为 125 Hz，既能长期观察
+ *       静态噪声和漂移，又不会让诊断计算明显增加姿态任务负载。
+ */
+static void BMI088_UpdateStabilityStats(void)
+{
+    BMI088_RuntimeStats_t *stats = &bmi088.runtime_stats;
+
+    if ((stats->data_read_count % BMI088_STABILITY_SAMPLE_DIVIDER) != 0U)
+    {
+        return;
+    }
+
+    stats->stability_sample_count++;
+    const float sample_count = (float)stats->stability_sample_count;
+
+    for (uint32_t axis = 0U; axis < 3U; axis++)
+    {
+        const float accel_delta = bmi088.data.accel[axis] - stats->accel_mean_mps2[axis];
+        stats->accel_mean_mps2[axis] += accel_delta / sample_count;
+        stats->accel_m2[axis] += accel_delta * (bmi088.data.accel[axis] - stats->accel_mean_mps2[axis]);
+
+        const float gyro_delta = bmi088.data.gyro[axis] - stats->gyro_mean_rps[axis];
+        stats->gyro_mean_rps[axis] += gyro_delta / sample_count;
+        stats->gyro_m2[axis] += gyro_delta * (bmi088.data.gyro[axis] - stats->gyro_mean_rps[axis]);
+    }
 }
 
 /* ===================== 对外接口实现 ===================== */
+
+void BMI088_RegisterReadyTask(TaskHandle_t task_handle)
+{
+    bmi088_ready_task = task_handle;
+}
 
 /**
  * @brief BMI088 初始化
@@ -385,29 +547,36 @@ static void BMI088_ParseAccel(const uint8_t *buf)
 BMI088_Status_e BMI088_Init(void)
 {
     memset(&bmi088, 0, sizeof(BMI088_Instance_t));
-    bmi088.gyro_tx_buf = bmi088_gyro_dma_tx_buf;
-    bmi088.gyro_rx_buf = bmi088_gyro_dma_rx_buf;
-    bmi088.accel_tx_buf = bmi088_accel_dma_tx_buf;
-    bmi088.accel_rx_buf = bmi088_accel_dma_rx_buf;
+    /*
+     * MCU 热复位不会复位外部 BMI088，传感器可能仍在输出 1 kHz DRDY。
+     * 必须先标记“未初始化”，否则枚举零值 BMI088_OK 会让 EXTI 在 Chip ID
+     * 读取期间抢先启动 SPI DMA，造成阻塞事务返回 BUSY 并误报 ID 错误。
+     */
+    bmi088.init_status                   = BMI088_NOT_INITIALIZED;
+    bmi088.gyro_tx_buf                   = bmi088_gyro_dma_tx_buf;
+    bmi088.gyro_rx_buf                   = bmi088_gyro_dma_rx_buf;
+    bmi088.accel_tx_buf                  = bmi088_accel_dma_tx_buf;
+    bmi088.accel_rx_buf                  = bmi088_accel_dma_rx_buf;
+    bmi088.runtime_stats.interval_min_us = UINT32_MAX;
     /* ---- 注册两个 SPI 实例（同一 SPI 总线，不同 CS）---- */
 
     SPI_Init_Config_s gyro_conf = {
-        .spi_handle   = BMI088_SPI_HANDLE,
-        .GPIOx        = BMI088_GYRO_CS_PORT,
-        .cs_pin       = BMI088_GYRO_CS_PIN,
+        .spi_handle    = BMI088_SPI_HANDLE,
+        .GPIOx         = BMI088_GYRO_CS_PORT,
+        .cs_pin        = BMI088_GYRO_CS_PIN,
         .spi_work_mode = SPI_DMA_MODE,
-        .callback     = BMI088_Gyro_DMA_Callback,
-        .id           = &bmi088,
+        .callback      = BMI088_Gyro_DMA_Callback,
+        .id            = &bmi088,
     };
     bmi088.spi_gyro = SPIRegister(&gyro_conf);
 
     SPI_Init_Config_s accel_conf = {
-        .spi_handle   = BMI088_SPI_HANDLE,
-        .GPIOx        = BMI088_ACCEL_CS_PORT,
-        .cs_pin       = BMI088_ACCEL_CS_PIN,
+        .spi_handle    = BMI088_SPI_HANDLE,
+        .GPIOx         = BMI088_ACCEL_CS_PORT,
+        .cs_pin        = BMI088_ACCEL_CS_PIN,
         .spi_work_mode = SPI_DMA_MODE,
-        .callback     = BMI088_Accel_DMA_Callback,
-        .id           = &bmi088,
+        .callback      = BMI088_Accel_DMA_Callback,
+        .id            = &bmi088,
     };
     bmi088.spi_accel = SPIRegister(&accel_conf);
 
@@ -448,9 +617,9 @@ BMI088_Status_e BMI088_Init(void)
      *   实际读出：[dummy_addr, dummy_protocol, AccX_L, AccX_H, AccY_L, AccY_H, AccZ_L, AccZ_H,
      *             SensorTime0, SensorTime1, SensorTime2, ...]
      *
-     * 我们读 1(addr) + 1(dummy) + 6(accel) + 3(sensortime) = 11 字节
-     * 再多读 2 字节凑温度的话就是 13 字节
-     * 此处先读 11 字节（不含温度），温度可以单独低频读
+     * 连续读取 1(addr) + 1(dummy) + 0x12..0x23(18 data) = 20 字节。
+     * 温度本身每 1.28 秒更新一次；随每帧读取会得到重复值，但避免了额外
+     * 阻塞事务和 DMA 总线所有权竞争。
      */
     memset(bmi088.accel_tx_buf, 0xFF, BMI088_ACCEL_DMA_BUF_SIZE);
     bmi088.accel_tx_buf[0] = ACC_X_LSB_REG | BMI088_SPI_READ;
@@ -487,25 +656,86 @@ BMI088_Instance_t *BMI088_GetInstance(void)
  */
 void BMI088_GYRO_DRDY_Handler(void)
 {
-    /* 如果上一次 DMA 还没完成，跳过本次（丢帧保护）*/
-    if (bmi088.dma_state != BMI088_DMA_IDLE)
+    uint64_t now_us;
+
+    if (bmi088.init_status != BMI088_OK)
     {
         return;
     }
-    bmi088.capture_timestamp = Bsp_Timestamp_us_Get();
-    bmi088.dma_state = BMI088_DMA_GYRO_BUSY;
+
+    /*
+     * 优先级 1 的 DRDY 可以在 FreeRTOS BASEPRI=5 的临界区内抢占执行。
+     * 统计此时 BASEPRI 是否非零，可直接判断原先优先级 5 的 DRDY 是否会被内核
+     * 临界区延迟，而不再仅凭代码中显式 taskENTER_CRITICAL() 的数量推测。
+     */
+    const uint32_t entry_basepri = __get_BASEPRI();
+    if (entry_basepri != 0U)
+    {
+        bmi088.runtime_stats.basepri_active_entry_count++;
+        if (entry_basepri > bmi088.runtime_stats.max_entry_basepri)
+        {
+            bmi088.runtime_stats.max_entry_basepri = entry_basepri;
+        }
+    }
+
+    now_us = Bsp_Timestamp_us_Get();
+    bmi088.runtime_stats.gyro_drdy_count++;
+
+    /*
+     * 上电后的传感器初始化和其他模块启动会暂时关闭/延迟中断，不能代表稳态通信抖动。
+     * 跳过最初 1000 个样本（约 1 秒），之后统计并自动封存 30000 个稳态周期。
+     * 封存后再连接调试器，不会把 SWD 停核时间误计入稳态最大间隔。
+     */
+    if ((bmi088.runtime_stats.last_drdy_timestamp_us != 0ULL) &&
+        (bmi088.runtime_stats.gyro_drdy_count > BMI088_TIMING_WARMUP_SAMPLES) &&
+        (bmi088.runtime_stats.gyro_drdy_count <= (BMI088_TIMING_WARMUP_SAMPLES + BMI088_TIMING_WINDOW_SAMPLES)))
+    {
+        const uint64_t interval_us_64 = now_us - bmi088.runtime_stats.last_drdy_timestamp_us;
+        const uint32_t interval_us    = (interval_us_64 > UINT32_MAX) ? UINT32_MAX : (uint32_t)interval_us_64;
+
+        bmi088.runtime_stats.interval_total_us += interval_us;
+        bmi088.runtime_stats.interval_sample_count++;
+        if (interval_us < bmi088.runtime_stats.interval_min_us)
+        {
+            bmi088.runtime_stats.interval_min_us = interval_us;
+        }
+        if (interval_us > bmi088.runtime_stats.interval_max_us)
+        {
+            bmi088.runtime_stats.interval_max_us = interval_us;
+        }
+        if (interval_us < (BMI088_EXPECTED_INTERVAL_US - BMI088_INTERVAL_TOLERANCE_US))
+        {
+            bmi088.runtime_stats.interval_short_count++;
+        }
+        if (interval_us > (BMI088_EXPECTED_INTERVAL_US + BMI088_INTERVAL_TOLERANCE_US))
+        {
+            bmi088.runtime_stats.interval_long_count++;
+        }
+    }
+    if (bmi088.runtime_stats.gyro_drdy_count == (BMI088_TIMING_WARMUP_SAMPLES + BMI088_TIMING_WINDOW_SAMPLES))
+    {
+        bmi088.runtime_stats.timing_window_complete = 1U;
+    }
+    bmi088.runtime_stats.last_drdy_timestamp_us = now_us;
+
+    /* 如果上一次 DMA 还没完成，跳过本次（丢帧保护）*/
+    if (bmi088.dma_state != BMI088_DMA_IDLE)
+    {
+        bmi088.runtime_stats.dma_busy_drop_count++;
+        return;
+    }
+    bmi088.capture_timestamp = now_us;
+    bmi088.dma_state         = BMI088_DMA_GYRO_BUSY;
 
     uint8_t write_idx = bmi088.gyro_buf_idx;
 
-    HAL_StatusTypeDef ret = SPITransRecv(
-        bmi088.spi_gyro,
-        bmi088.gyro_tx_buf,
-        bmi088.gyro_rx_buf[write_idx],
-        BMI088_GYRO_DMA_BUF_SIZE);
+    HAL_StatusTypeDef ret = SPITransRecv(bmi088.spi_gyro, bmi088.gyro_tx_buf, bmi088.gyro_rx_buf[write_idx],
+                                         BMI088_GYRO_DMA_BUF_SIZE);
 
     if (ret != HAL_OK)
     {
         /* 启动失败，恢复空闲，等下一个 DRDY */
+        bmi088.runtime_stats.dma_start_error_count++;
         bmi088.dma_state = BMI088_DMA_IDLE;
     }
 }
@@ -519,6 +749,11 @@ void BMI088_GYRO_DRDY_Handler(void)
  */
 void BMI088_ACCEL_DRDY_Handler(void)
 {
+    if (bmi088.init_status != BMI088_OK)
+    {
+        return;
+    }
+
     /* 独立模式下的加速度计读取 */
     if (bmi088.dma_state != BMI088_DMA_IDLE)
     {
@@ -529,14 +764,12 @@ void BMI088_ACCEL_DRDY_Handler(void)
 
     uint8_t write_idx = bmi088.accel_buf_idx;
 
-    HAL_StatusTypeDef ret = SPITransRecv(
-        bmi088.spi_accel,
-        bmi088.accel_tx_buf,
-        bmi088.accel_rx_buf[write_idx],
-        BMI088_ACCEL_DMA_BUF_SIZE);
+    HAL_StatusTypeDef ret = SPITransRecv(bmi088.spi_accel, bmi088.accel_tx_buf, bmi088.accel_rx_buf[write_idx],
+                                         BMI088_ACCEL_DMA_BUF_SIZE);
 
     if (ret != HAL_OK)
     {
+        bmi088.runtime_stats.dma_start_error_count++;
         bmi088.dma_state = BMI088_DMA_IDLE;
     }
 }
@@ -552,7 +785,8 @@ void BMI088_ACCEL_DRDY_Handler(void)
  */
 uint8_t BMI088_GetData(BMI088_Data_t *data)
 {
-    uint8_t updated = 0;
+    uint8_t updated      = 0;
+    uint8_t gyro_updated = 0;
 
     /* 检查陀螺仪是否有新数据 */
     if (bmi088.data.gyro_update_flag)
@@ -566,7 +800,8 @@ uint8_t BMI088_GetData(BMI088_Data_t *data)
          */
         uint8_t read_idx = bmi088.gyro_buf_idx ^ 1;
         BMI088_ParseGyro(bmi088.gyro_rx_buf[read_idx]);
-        updated = 1;
+        gyro_updated = 1;
+        updated      = 1;
     }
 
     /* 检查加速度计是否有新数据 */
@@ -579,9 +814,16 @@ uint8_t BMI088_GetData(BMI088_Data_t *data)
         updated = 1;
     }
 
+    if (gyro_updated != 0U)
+    {
+        BMI088_ApplyGyroCalibration();
+    }
+
     /* 输出数据 */
     if (data != NULL && updated)
     {
+        bmi088.runtime_stats.data_read_count++;
+        BMI088_UpdateStabilityStats();
         memcpy(data, &bmi088.data, sizeof(BMI088_Data_t));
     }
 

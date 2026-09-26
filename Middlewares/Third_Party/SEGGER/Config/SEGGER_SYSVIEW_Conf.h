@@ -91,6 +91,9 @@ Additional information:
 // 告诉 SystemView 系统时间戳的频率（通常等于 CPU 主频）
 #define SEGGER_SYSVIEW_TIMESTAMP_FREQ SEGGER_SYSVIEW_CORE_FREQ
 
+/* Channel 0 保留给 RTT 文本日志；SystemView 使用独立的二进制通道，避免数据流互相污染。 */
+#define SEGGER_SYSVIEW_RTT_CHANNEL 1
+
 // (可选) 为了避免 STM32H7 的 Cache 问题，建议把 RTT Buffer 放到特定区域
 // 如果你不知道怎么改链接脚本，先暂时不用管这一行
 /* ==================================================================== */

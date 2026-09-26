@@ -13,7 +13,8 @@
  * @brief 序列锁结构体
  * @note  必须保证 sequence 变量被 volatile 修饰，防止编译器将其优化到寄存器中
  */
-typedef struct {
+typedef struct
+{
     volatile uint32_t sequence;
 } SeqLock_t;
 
@@ -52,7 +53,8 @@ static inline void SeqLock_WriteEnd(SeqLock_t *lock)
 static inline uint32_t SeqLock_ReadBegin(const SeqLock_t *lock)
 {
     uint32_t seq;
-    do {
+    do
+    {
         seq = lock->sequence;
     } while ((seq & 1U) != 0U); /* 如果是奇数，说明写者正在更新数据，自旋等待其写完 */
 

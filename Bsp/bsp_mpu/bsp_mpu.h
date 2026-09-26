@@ -1,13 +1,12 @@
-//
-// Created by Administrator on 2026/6/8.
-//
-
 #ifndef MY_NEW_UAV_BAICE_FRAMEWORK_BSP_MPU_H
 #define MY_NEW_UAV_BAICE_FRAMEWORK_BSP_MPU_H
 
+/**
+ * @file bsp_mpu.h
+ * @brief STM32H7 内存保护和缓存属性配置接口。
+ */
 
-
+/** @brief 配置 FLASH、D1/D2/D3 SRAM 的 MPU 区域属性并启用 MPU。 */
 void Bsp_MPU_Config(void);
 
-
-#endif //MY_NEW_UAV_BAICE_FRAMEWORK_BSP_MPU_H
+#endif /* MY_NEW_UAV_BAICE_FRAMEWORK_BSP_MPU_H */

@@ -1,4 +1,8 @@
 Build/
+cmake-build-*/
+.idea/
+**/__pycache__/
+*.pyc
 .mxproject
 *.o
 *.d
@@ -6,3 +10,10 @@ Build/
 *.htm
 *.lnp
 *.axf
+*.elf
+*.hex
+*.bin
+*.map
+*.lst
+my_bootloader-main/build/
+my_bootloader-main.zip

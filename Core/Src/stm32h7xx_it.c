@@ -20,11 +20,13 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32h7xx_it.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "modules_BMI270.h"
 #include "modules_BMI088.h"
+#include "modules_SPL06.h"
+#include "bsp_driver_sd.h"
+#include "SEGGER_SYSVIEW.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,42 +47,112 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 
+volatile FaultDiagnostic_t fault_diagnostic;
+
+/*
+ * HAL_Init() 启动 TIM17 Tick 时，RTT/SystemView 尚未完成初始化。所有 ISR
+ * 追踪钩子必须在 SEGGER_SYSVIEW_Conf() 返回后才允许访问 RTT 的 NOLOAD 控制块。
+ */
+static volatile uint8_t systemview_isr_trace_ready;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
+
+static void Fault_RecordAndBreak(FaultType_e fault_type);
+static void SystemView_RecordEnterISRIfReady(void);
+static void SystemView_RecordExitISRIfReady(void);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+static void Fault_RecordAndBreak(FaultType_e fault_type)
+{
+    __disable_irq();
+
+    fault_diagnostic.fault_magic = 0x4641554CUL;
+    fault_diagnostic.fault_type  = fault_type;
+    fault_diagnostic.ipsr        = __get_IPSR();
+    fault_diagnostic.cfsr        = SCB->CFSR;
+    fault_diagnostic.hfsr        = SCB->HFSR;
+    fault_diagnostic.dfsr        = SCB->DFSR;
+    fault_diagnostic.afsr        = SCB->AFSR;
+    fault_diagnostic.mmfar       = SCB->MMFAR;
+    fault_diagnostic.bfar        = SCB->BFAR;
+    fault_diagnostic.shcsr       = SCB->SHCSR;
+
+    __DSB();
+    __ISB();
+
+    /* 仅在调试器已经连接时触发断点，脱机运行不会因 BKPT 再次嵌套异常。 */
+    if ((CoreDebug->DHCSR & CoreDebug_DHCSR_C_DEBUGEN_Msk) != 0U)
+    {
+        __BKPT(0);
+    }
+}
+
+static void SystemView_RecordEnterISRIfReady(void)
+{
+    if (systemview_isr_trace_ready != 0U)
+    {
+        SEGGER_SYSVIEW_RecordEnterISR();
+    }
+}
+
+static void SystemView_RecordExitISRIfReady(void)
+{
+    if (systemview_isr_trace_ready != 0U)
+    {
+        SEGGER_SYSVIEW_RecordExitISR();
+    }
+}
+
+void SystemView_ISRTraceSetReady(void)
+{
+    __DMB();
+    systemview_isr_trace_ready = 1U;
+}
+
+/* 后续 CubeMX ISR 用户区中的原调用统一经过初始化状态保护。 */
+#define SEGGER_SYSVIEW_RecordEnterISR() SystemView_RecordEnterISRIfReady()
+#define SEGGER_SYSVIEW_RecordExitISR()  SystemView_RecordExitISRIfReady()
+
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
+extern PCD_HandleTypeDef   hpcd_USB_OTG_FS;
 extern FDCAN_HandleTypeDef hfdcan1;
-extern DMA_HandleTypeDef hdma_i2c2_rx;
-extern DMA_HandleTypeDef hdma_i2c2_tx;
-extern I2C_HandleTypeDef hi2c2;
-extern SD_HandleTypeDef hsd1;
-extern DMA_HandleTypeDef hdma_spi2_rx;
-extern DMA_HandleTypeDef hdma_spi2_tx;
-extern DMA_HandleTypeDef hdma_spi3_rx;
-extern DMA_HandleTypeDef hdma_spi3_tx;
-extern SPI_HandleTypeDef hspi2;
-extern SPI_HandleTypeDef hspi3;
-extern TIM_HandleTypeDef htim2;
-extern DMA_HandleTypeDef hdma_uart8_rx;
-extern DMA_HandleTypeDef hdma_uart8_tx;
-extern DMA_HandleTypeDef hdma_usart1_rx;
-extern DMA_HandleTypeDef hdma_usart1_tx;
-extern DMA_HandleTypeDef hdma_usart6_rx;
-extern DMA_HandleTypeDef hdma_usart6_tx;
-extern UART_HandleTypeDef huart8;
-extern UART_HandleTypeDef huart1;
-extern UART_HandleTypeDef huart6;
-extern TIM_HandleTypeDef htim17;
+extern DMA_HandleTypeDef   hdma_i2c2_rx;
+extern I2C_HandleTypeDef   hi2c2;
+extern SD_HandleTypeDef    hsd1;
+extern DMA_HandleTypeDef   hdma_spi2_rx;
+extern DMA_HandleTypeDef   hdma_spi2_tx;
+extern DMA_HandleTypeDef   hdma_spi3_rx;
+extern DMA_HandleTypeDef   hdma_spi3_tx;
+extern SPI_HandleTypeDef   hspi2;
+extern SPI_HandleTypeDef   hspi3;
+extern TIM_HandleTypeDef   htim2;
+extern DMA_HandleTypeDef   hdma_uart4_rx;
+extern DMA_HandleTypeDef   hdma_uart5_rx;
+extern DMA_HandleTypeDef   hdma_uart7_rx;
+extern DMA_HandleTypeDef   hdma_uart8_rx;
+extern DMA_HandleTypeDef   hdma_uart8_tx;
+extern DMA_HandleTypeDef   hdma_usart1_rx;
+extern DMA_HandleTypeDef   hdma_usart2_rx;
+extern DMA_HandleTypeDef   hdma_usart3_rx;
+extern DMA_HandleTypeDef   hdma_usart6_rx;
+extern UART_HandleTypeDef  huart4;
+extern UART_HandleTypeDef  huart5;
+extern UART_HandleTypeDef  huart7;
+extern UART_HandleTypeDef  huart8;
+extern UART_HandleTypeDef  huart1;
+extern UART_HandleTypeDef  huart2;
+extern UART_HandleTypeDef  huart3;
+extern UART_HandleTypeDef  huart6;
+extern TIM_HandleTypeDef   htim17;
 
 /* USER CODE BEGIN EV */
 
@@ -94,14 +166,14 @@ extern TIM_HandleTypeDef htim17;
   */
 void NMI_Handler(void)
 {
-  /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
+    /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
 
-  /* USER CODE END NonMaskableInt_IRQn 0 */
-  /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-   while (1)
-  {
-  }
-  /* USER CODE END NonMaskableInt_IRQn 1 */
+    /* USER CODE END NonMaskableInt_IRQn 0 */
+    /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
+    while (1)
+    {
+    }
+    /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
 /**
@@ -109,14 +181,14 @@ void NMI_Handler(void)
   */
 void HardFault_Handler(void)
 {
-  /* USER CODE BEGIN HardFault_IRQn 0 */
-
-  /* USER CODE END HardFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
-    /* USER CODE END W1_HardFault_IRQn 0 */
-  }
+    /* USER CODE BEGIN HardFault_IRQn 0 */
+    Fault_RecordAndBreak(FAULT_TYPE_HARD);
+    /* USER CODE END HardFault_IRQn 0 */
+    while (1)
+    {
+        /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+        /* USER CODE END W1_HardFault_IRQn 0 */
+    }
 }
 
 /**
@@ -124,14 +196,14 @@ void HardFault_Handler(void)
   */
 void MemManage_Handler(void)
 {
-  /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-
-  /* USER CODE END MemoryManagement_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
-    /* USER CODE END W1_MemoryManagement_IRQn 0 */
-  }
+    /* USER CODE BEGIN MemoryManagement_IRQn 0 */
+    Fault_RecordAndBreak(FAULT_TYPE_MEMORY);
+    /* USER CODE END MemoryManagement_IRQn 0 */
+    while (1)
+    {
+        /* USER CODE BEGIN W1_MemoryManagement_IRQn 0 */
+        /* USER CODE END W1_MemoryManagement_IRQn 0 */
+    }
 }
 
 /**
@@ -139,14 +211,14 @@ void MemManage_Handler(void)
   */
 void BusFault_Handler(void)
 {
-  /* USER CODE BEGIN BusFault_IRQn 0 */
-
-  /* USER CODE END BusFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_BusFault_IRQn 0 */
-    /* USER CODE END W1_BusFault_IRQn 0 */
-  }
+    /* USER CODE BEGIN BusFault_IRQn 0 */
+    Fault_RecordAndBreak(FAULT_TYPE_BUS);
+    /* USER CODE END BusFault_IRQn 0 */
+    while (1)
+    {
+        /* USER CODE BEGIN W1_BusFault_IRQn 0 */
+        /* USER CODE END W1_BusFault_IRQn 0 */
+    }
 }
 
 /**
@@ -154,14 +226,14 @@ void BusFault_Handler(void)
   */
 void UsageFault_Handler(void)
 {
-  /* USER CODE BEGIN UsageFault_IRQn 0 */
-
-  /* USER CODE END UsageFault_IRQn 0 */
-  while (1)
-  {
-    /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
-    /* USER CODE END W1_UsageFault_IRQn 0 */
-  }
+    /* USER CODE BEGIN UsageFault_IRQn 0 */
+    Fault_RecordAndBreak(FAULT_TYPE_USAGE);
+    /* USER CODE END UsageFault_IRQn 0 */
+    while (1)
+    {
+        /* USER CODE BEGIN W1_UsageFault_IRQn 0 */
+        /* USER CODE END W1_UsageFault_IRQn 0 */
+    }
 }
 
 /**
@@ -169,12 +241,12 @@ void UsageFault_Handler(void)
   */
 void DebugMon_Handler(void)
 {
-  /* USER CODE BEGIN DebugMonitor_IRQn 0 */
+    /* USER CODE BEGIN DebugMonitor_IRQn 0 */
 
-  /* USER CODE END DebugMonitor_IRQn 0 */
-  /* USER CODE BEGIN DebugMonitor_IRQn 1 */
+    /* USER CODE END DebugMonitor_IRQn 0 */
+    /* USER CODE BEGIN DebugMonitor_IRQn 1 */
 
-  /* USER CODE END DebugMonitor_IRQn 1 */
+    /* USER CODE END DebugMonitor_IRQn 1 */
 }
 
 /******************************************************************************/
@@ -189,13 +261,13 @@ void DebugMon_Handler(void)
   */
 void EXTI0_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI0_IRQn 0 */
-
-  /* USER CODE END EXTI0_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(SPL06_INT_Pin);
-  /* USER CODE BEGIN EXTI0_IRQn 1 */
-
-  /* USER CODE END EXTI0_IRQn 1 */
+    /* USER CODE BEGIN EXTI0_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+    /* USER CODE END EXTI0_IRQn 0 */
+    HAL_GPIO_EXTI_IRQHandler(SPL06_INT_Pin);
+    /* USER CODE BEGIN EXTI0_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END EXTI0_IRQn 1 */
 }
 
 /**
@@ -203,13 +275,13 @@ void EXTI0_IRQHandler(void)
   */
 void DMA1_Stream0_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
-
-  /* USER CODE END DMA1_Stream0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_spi2_rx);
-  /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
-
-  /* USER CODE END DMA1_Stream0_IRQn 1 */
+    /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+    /* USER CODE END DMA1_Stream0_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_spi2_rx);
+    /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA1_Stream0_IRQn 1 */
 }
 
 /**
@@ -217,13 +289,15 @@ void DMA1_Stream0_IRQHandler(void)
   */
 void DMA1_Stream1_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream1_IRQn 0 */
+    /* USER CODE BEGIN DMA1_Stream1_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END DMA1_Stream1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_spi2_tx);
-  /* USER CODE BEGIN DMA1_Stream1_IRQn 1 */
+    /* USER CODE END DMA1_Stream1_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_spi2_tx);
+    /* USER CODE BEGIN DMA1_Stream1_IRQn 1 */
 
-  /* USER CODE END DMA1_Stream1_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA1_Stream1_IRQn 1 */
 }
 
 /**
@@ -231,13 +305,13 @@ void DMA1_Stream1_IRQHandler(void)
   */
 void DMA1_Stream2_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream2_IRQn 0 */
-
-  /* USER CODE END DMA1_Stream2_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_spi3_rx);
-  /* USER CODE BEGIN DMA1_Stream2_IRQn 1 */
-
-  /* USER CODE END DMA1_Stream2_IRQn 1 */
+    /* USER CODE BEGIN DMA1_Stream2_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+    /* USER CODE END DMA1_Stream2_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_spi3_rx);
+    /* USER CODE BEGIN DMA1_Stream2_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA1_Stream2_IRQn 1 */
 }
 
 /**
@@ -245,13 +319,15 @@ void DMA1_Stream2_IRQHandler(void)
   */
 void DMA1_Stream3_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream3_IRQn 0 */
+    /* USER CODE BEGIN DMA1_Stream3_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END DMA1_Stream3_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_spi3_tx);
-  /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
+    /* USER CODE END DMA1_Stream3_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_spi3_tx);
+    /* USER CODE BEGIN DMA1_Stream3_IRQn 1 */
 
-  /* USER CODE END DMA1_Stream3_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA1_Stream3_IRQn 1 */
 }
 
 /**
@@ -259,13 +335,15 @@ void DMA1_Stream3_IRQHandler(void)
   */
 void DMA1_Stream4_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream4_IRQn 0 */
+    /* USER CODE BEGIN DMA1_Stream4_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END DMA1_Stream4_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_i2c2_rx);
-  /* USER CODE BEGIN DMA1_Stream4_IRQn 1 */
+    /* USER CODE END DMA1_Stream4_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_usart6_rx);
+    /* USER CODE BEGIN DMA1_Stream4_IRQn 1 */
 
-  /* USER CODE END DMA1_Stream4_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA1_Stream4_IRQn 1 */
 }
 
 /**
@@ -273,13 +351,15 @@ void DMA1_Stream4_IRQHandler(void)
   */
 void DMA1_Stream5_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream5_IRQn 0 */
+    /* USER CODE BEGIN DMA1_Stream5_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END DMA1_Stream5_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_i2c2_tx);
-  /* USER CODE BEGIN DMA1_Stream5_IRQn 1 */
+    /* USER CODE END DMA1_Stream5_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_usart1_rx);
+    /* USER CODE BEGIN DMA1_Stream5_IRQn 1 */
 
-  /* USER CODE END DMA1_Stream5_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA1_Stream5_IRQn 1 */
 }
 
 /**
@@ -287,13 +367,15 @@ void DMA1_Stream5_IRQHandler(void)
   */
 void DMA1_Stream6_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream6_IRQn 0 */
+    /* USER CODE BEGIN DMA1_Stream6_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END DMA1_Stream6_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart1_rx);
-  /* USER CODE BEGIN DMA1_Stream6_IRQn 1 */
+    /* USER CODE END DMA1_Stream6_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_uart4_rx);
+    /* USER CODE BEGIN DMA1_Stream6_IRQn 1 */
 
-  /* USER CODE END DMA1_Stream6_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA1_Stream6_IRQn 1 */
 }
 
 /**
@@ -301,13 +383,31 @@ void DMA1_Stream6_IRQHandler(void)
   */
 void FDCAN1_IT0_IRQHandler(void)
 {
-  /* USER CODE BEGIN FDCAN1_IT0_IRQn 0 */
+    /* USER CODE BEGIN FDCAN1_IT0_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END FDCAN1_IT0_IRQn 0 */
-  HAL_FDCAN_IRQHandler(&hfdcan1);
-  /* USER CODE BEGIN FDCAN1_IT0_IRQn 1 */
+    /* USER CODE END FDCAN1_IT0_IRQn 0 */
+    HAL_FDCAN_IRQHandler(&hfdcan1);
+    /* USER CODE BEGIN FDCAN1_IT0_IRQn 1 */
 
-  /* USER CODE END FDCAN1_IT0_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END FDCAN1_IT0_IRQn 1 */
+}
+
+/**
+  * @brief This function handles FDCAN1 interrupt 1.
+  */
+void FDCAN1_IT1_IRQHandler(void)
+{
+    /* USER CODE BEGIN FDCAN1_IT1_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+
+    /* USER CODE END FDCAN1_IT1_IRQn 0 */
+    HAL_FDCAN_IRQHandler(&hfdcan1);
+    /* USER CODE BEGIN FDCAN1_IT1_IRQn 1 */
+
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END FDCAN1_IT1_IRQn 1 */
 }
 
 /**
@@ -315,13 +415,13 @@ void FDCAN1_IT0_IRQHandler(void)
   */
 void EXTI9_5_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI9_5_IRQn 0 */
-
-  /* USER CODE END EXTI9_5_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(BMI270_INT_Pin);
-  /* USER CODE BEGIN EXTI9_5_IRQn 1 */
-
-  /* USER CODE END EXTI9_5_IRQn 1 */
+    /* USER CODE BEGIN EXTI9_5_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+    /* USER CODE END EXTI9_5_IRQn 0 */
+    HAL_GPIO_EXTI_IRQHandler(BMI270_INT_Pin);
+    /* USER CODE BEGIN EXTI9_5_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END EXTI9_5_IRQn 1 */
 }
 
 /**
@@ -329,13 +429,15 @@ void EXTI9_5_IRQHandler(void)
   */
 void TIM2_IRQHandler(void)
 {
-  /* USER CODE BEGIN TIM2_IRQn 0 */
+    /* USER CODE BEGIN TIM2_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END TIM2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim2);
-  /* USER CODE BEGIN TIM2_IRQn 1 */
+    /* USER CODE END TIM2_IRQn 0 */
+    HAL_TIM_IRQHandler(&htim2);
+    /* USER CODE BEGIN TIM2_IRQn 1 */
 
-  /* USER CODE END TIM2_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END TIM2_IRQn 1 */
 }
 
 /**
@@ -343,13 +445,15 @@ void TIM2_IRQHandler(void)
   */
 void I2C2_EV_IRQHandler(void)
 {
-  /* USER CODE BEGIN I2C2_EV_IRQn 0 */
+    /* USER CODE BEGIN I2C2_EV_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END I2C2_EV_IRQn 0 */
-  HAL_I2C_EV_IRQHandler(&hi2c2);
-  /* USER CODE BEGIN I2C2_EV_IRQn 1 */
+    /* USER CODE END I2C2_EV_IRQn 0 */
+    HAL_I2C_EV_IRQHandler(&hi2c2);
+    /* USER CODE BEGIN I2C2_EV_IRQn 1 */
 
-  /* USER CODE END I2C2_EV_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END I2C2_EV_IRQn 1 */
 }
 
 /**
@@ -357,13 +461,15 @@ void I2C2_EV_IRQHandler(void)
   */
 void I2C2_ER_IRQHandler(void)
 {
-  /* USER CODE BEGIN I2C2_ER_IRQn 0 */
+    /* USER CODE BEGIN I2C2_ER_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END I2C2_ER_IRQn 0 */
-  HAL_I2C_ER_IRQHandler(&hi2c2);
-  /* USER CODE BEGIN I2C2_ER_IRQn 1 */
+    /* USER CODE END I2C2_ER_IRQn 0 */
+    HAL_I2C_ER_IRQHandler(&hi2c2);
+    /* USER CODE BEGIN I2C2_ER_IRQn 1 */
 
-  /* USER CODE END I2C2_ER_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END I2C2_ER_IRQn 1 */
 }
 
 /**
@@ -371,13 +477,15 @@ void I2C2_ER_IRQHandler(void)
   */
 void SPI2_IRQHandler(void)
 {
-  /* USER CODE BEGIN SPI2_IRQn 0 */
+    /* USER CODE BEGIN SPI2_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END SPI2_IRQn 0 */
-  HAL_SPI_IRQHandler(&hspi2);
-  /* USER CODE BEGIN SPI2_IRQn 1 */
+    /* USER CODE END SPI2_IRQn 0 */
+    HAL_SPI_IRQHandler(&hspi2);
+    /* USER CODE BEGIN SPI2_IRQn 1 */
 
-  /* USER CODE END SPI2_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END SPI2_IRQn 1 */
 }
 
 /**
@@ -385,13 +493,47 @@ void SPI2_IRQHandler(void)
   */
 void USART1_IRQHandler(void)
 {
-  /* USER CODE BEGIN USART1_IRQn 0 */
+    /* USER CODE BEGIN USART1_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END USART1_IRQn 0 */
-  HAL_UART_IRQHandler(&huart1);
-  /* USER CODE BEGIN USART1_IRQn 1 */
+    /* USER CODE END USART1_IRQn 0 */
+    HAL_UART_IRQHandler(&huart1);
+    /* USER CODE BEGIN USART1_IRQn 1 */
 
-  /* USER CODE END USART1_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END USART1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART2 global interrupt.
+  */
+void USART2_IRQHandler(void)
+{
+    /* USER CODE BEGIN USART2_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+
+    /* USER CODE END USART2_IRQn 0 */
+    HAL_UART_IRQHandler(&huart2);
+    /* USER CODE BEGIN USART2_IRQn 1 */
+
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END USART2_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART3 global interrupt.
+  */
+void USART3_IRQHandler(void)
+{
+    /* USER CODE BEGIN USART3_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+
+    /* USER CODE END USART3_IRQn 0 */
+    HAL_UART_IRQHandler(&huart3);
+    /* USER CODE BEGIN USART3_IRQn 1 */
+
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END USART3_IRQn 1 */
 }
 
 /**
@@ -399,14 +541,14 @@ void USART1_IRQHandler(void)
   */
 void EXTI15_10_IRQHandler(void)
 {
-  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
-
-  /* USER CODE END EXTI15_10_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(ACC_INT_Pin);
-  HAL_GPIO_EXTI_IRQHandler(GYRO_INT_Pin);
-  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
-
-  /* USER CODE END EXTI15_10_IRQn 1 */
+    /* USER CODE BEGIN EXTI15_10_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+    /* USER CODE END EXTI15_10_IRQn 0 */
+    HAL_GPIO_EXTI_IRQHandler(ACC_INT_Pin);
+    HAL_GPIO_EXTI_IRQHandler(GYRO_INT_Pin);
+    /* USER CODE BEGIN EXTI15_10_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END EXTI15_10_IRQn 1 */
 }
 
 /**
@@ -414,13 +556,15 @@ void EXTI15_10_IRQHandler(void)
   */
 void DMA1_Stream7_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream7_IRQn 0 */
+    /* USER CODE BEGIN DMA1_Stream7_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END DMA1_Stream7_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart1_tx);
-  /* USER CODE BEGIN DMA1_Stream7_IRQn 1 */
+    /* USER CODE END DMA1_Stream7_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_usart2_rx);
+    /* USER CODE BEGIN DMA1_Stream7_IRQn 1 */
 
-  /* USER CODE END DMA1_Stream7_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA1_Stream7_IRQn 1 */
 }
 
 /**
@@ -428,13 +572,23 @@ void DMA1_Stream7_IRQHandler(void)
   */
 void SDMMC1_IRQHandler(void)
 {
-  /* USER CODE BEGIN SDMMC1_IRQn 0 */
+    /* USER CODE BEGIN SDMMC1_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END SDMMC1_IRQn 0 */
-  HAL_SD_IRQHandler(&hsd1);
-  /* USER CODE BEGIN SDMMC1_IRQn 1 */
-
-  /* USER CODE END SDMMC1_IRQn 1 */
+    /*
+     * 多块 DMA 的 DATAEND 和 DMA 数据错误不能进入 HAL 默认的 CMD12 忙等
+     * 路径。这里仅完成有界的寄存器收尾并通知任务，CMD12 在任务中执行。
+     */
+    if (BSP_SD_DeferTransferIRQ(&hsd1) != 0U)
+    {
+        SEGGER_SYSVIEW_RecordExitISR();
+        return;
+    }
+    /* USER CODE END SDMMC1_IRQn 0 */
+    HAL_SD_IRQHandler(&hsd1);
+    /* USER CODE BEGIN SDMMC1_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END SDMMC1_IRQn 1 */
 }
 
 /**
@@ -442,13 +596,47 @@ void SDMMC1_IRQHandler(void)
   */
 void SPI3_IRQHandler(void)
 {
-  /* USER CODE BEGIN SPI3_IRQn 0 */
+    /* USER CODE BEGIN SPI3_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END SPI3_IRQn 0 */
-  HAL_SPI_IRQHandler(&hspi3);
-  /* USER CODE BEGIN SPI3_IRQn 1 */
+    /* USER CODE END SPI3_IRQn 0 */
+    HAL_SPI_IRQHandler(&hspi3);
+    /* USER CODE BEGIN SPI3_IRQn 1 */
 
-  /* USER CODE END SPI3_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END SPI3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles UART4 global interrupt.
+  */
+void UART4_IRQHandler(void)
+{
+    /* USER CODE BEGIN UART4_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+
+    /* USER CODE END UART4_IRQn 0 */
+    HAL_UART_IRQHandler(&huart4);
+    /* USER CODE BEGIN UART4_IRQn 1 */
+
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END UART4_IRQn 1 */
+}
+
+/**
+  * @brief This function handles UART5 global interrupt.
+  */
+void UART5_IRQHandler(void)
+{
+    /* USER CODE BEGIN UART5_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+
+    /* USER CODE END UART5_IRQn 0 */
+    HAL_UART_IRQHandler(&huart5);
+    /* USER CODE BEGIN UART5_IRQn 1 */
+
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END UART5_IRQn 1 */
 }
 
 /**
@@ -456,13 +644,15 @@ void SPI3_IRQHandler(void)
   */
 void DMA2_Stream0_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
+    /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END DMA2_Stream0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_uart8_rx);
-  /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
+    /* USER CODE END DMA2_Stream0_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_uart8_rx);
+    /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
 
-  /* USER CODE END DMA2_Stream0_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA2_Stream0_IRQn 1 */
 }
 
 /**
@@ -470,27 +660,15 @@ void DMA2_Stream0_IRQHandler(void)
   */
 void DMA2_Stream1_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA2_Stream1_IRQn 0 */
+    /* USER CODE BEGIN DMA2_Stream1_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END DMA2_Stream1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_uart8_tx);
-  /* USER CODE BEGIN DMA2_Stream1_IRQn 1 */
+    /* USER CODE END DMA2_Stream1_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_uart8_tx);
+    /* USER CODE BEGIN DMA2_Stream1_IRQn 1 */
 
-  /* USER CODE END DMA2_Stream1_IRQn 1 */
-}
-
-/**
-  * @brief This function handles DMA2 stream2 global interrupt.
-  */
-void DMA2_Stream2_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA2_Stream2_IRQn 0 */
-
-  /* USER CODE END DMA2_Stream2_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart6_rx);
-  /* USER CODE BEGIN DMA2_Stream2_IRQn 1 */
-
-  /* USER CODE END DMA2_Stream2_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA2_Stream1_IRQn 1 */
 }
 
 /**
@@ -498,13 +676,61 @@ void DMA2_Stream2_IRQHandler(void)
   */
 void DMA2_Stream3_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA2_Stream3_IRQn 0 */
+    /* USER CODE BEGIN DMA2_Stream3_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END DMA2_Stream3_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart6_tx);
-  /* USER CODE BEGIN DMA2_Stream3_IRQn 1 */
+    /* USER CODE END DMA2_Stream3_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_uart5_rx);
+    /* USER CODE BEGIN DMA2_Stream3_IRQn 1 */
 
-  /* USER CODE END DMA2_Stream3_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA2_Stream3_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA2 stream4 global interrupt.
+  */
+void DMA2_Stream4_IRQHandler(void)
+{
+    /* USER CODE BEGIN DMA2_Stream4_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+
+    /* USER CODE END DMA2_Stream4_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_usart3_rx);
+    /* USER CODE BEGIN DMA2_Stream4_IRQn 1 */
+
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA2_Stream4_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA2 stream5 global interrupt.
+  */
+void DMA2_Stream5_IRQHandler(void)
+{
+    /* USER CODE BEGIN DMA2_Stream5_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+
+    /* USER CODE END DMA2_Stream5_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_uart7_rx);
+    /* USER CODE BEGIN DMA2_Stream5_IRQn 1 */
+
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA2_Stream5_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA2 stream7 global interrupt.
+  */
+void DMA2_Stream7_IRQHandler(void)
+{
+    /* USER CODE BEGIN DMA2_Stream7_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+    /* USER CODE END DMA2_Stream7_IRQn 0 */
+    HAL_DMA_IRQHandler(&hdma_i2c2_rx);
+    /* USER CODE BEGIN DMA2_Stream7_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END DMA2_Stream7_IRQn 1 */
 }
 
 /**
@@ -512,13 +738,31 @@ void DMA2_Stream3_IRQHandler(void)
   */
 void USART6_IRQHandler(void)
 {
-  /* USER CODE BEGIN USART6_IRQn 0 */
+    /* USER CODE BEGIN USART6_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END USART6_IRQn 0 */
-  HAL_UART_IRQHandler(&huart6);
-  /* USER CODE BEGIN USART6_IRQn 1 */
+    /* USER CODE END USART6_IRQn 0 */
+    HAL_UART_IRQHandler(&huart6);
+    /* USER CODE BEGIN USART6_IRQn 1 */
 
-  /* USER CODE END USART6_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END USART6_IRQn 1 */
+}
+
+/**
+  * @brief This function handles UART7 global interrupt.
+  */
+void UART7_IRQHandler(void)
+{
+    /* USER CODE BEGIN UART7_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+
+    /* USER CODE END UART7_IRQn 0 */
+    HAL_UART_IRQHandler(&huart7);
+    /* USER CODE BEGIN UART7_IRQn 1 */
+
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END UART7_IRQn 1 */
 }
 
 /**
@@ -526,13 +770,15 @@ void USART6_IRQHandler(void)
   */
 void UART8_IRQHandler(void)
 {
-  /* USER CODE BEGIN UART8_IRQn 0 */
+    /* USER CODE BEGIN UART8_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END UART8_IRQn 0 */
-  HAL_UART_IRQHandler(&huart8);
-  /* USER CODE BEGIN UART8_IRQn 1 */
+    /* USER CODE END UART8_IRQn 0 */
+    HAL_UART_IRQHandler(&huart8);
+    /* USER CODE BEGIN UART8_IRQn 1 */
 
-  /* USER CODE END UART8_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END UART8_IRQn 1 */
 }
 
 /**
@@ -540,13 +786,13 @@ void UART8_IRQHandler(void)
   */
 void OTG_FS_IRQHandler(void)
 {
-  /* USER CODE BEGIN OTG_FS_IRQn 0 */
-
-  /* USER CODE END OTG_FS_IRQn 0 */
-  HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
-  /* USER CODE BEGIN OTG_FS_IRQn 1 */
-
-  /* USER CODE END OTG_FS_IRQn 1 */
+    /* USER CODE BEGIN OTG_FS_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
+    /* USER CODE END OTG_FS_IRQn 0 */
+    HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
+    /* USER CODE BEGIN OTG_FS_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END OTG_FS_IRQn 1 */
 }
 
 /**
@@ -554,30 +800,36 @@ void OTG_FS_IRQHandler(void)
   */
 void TIM17_IRQHandler(void)
 {
-  /* USER CODE BEGIN TIM17_IRQn 0 */
+    /* USER CODE BEGIN TIM17_IRQn 0 */
+    SEGGER_SYSVIEW_RecordEnterISR();
 
-  /* USER CODE END TIM17_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim17);
-  /* USER CODE BEGIN TIM17_IRQn 1 */
+    /* USER CODE END TIM17_IRQn 0 */
+    HAL_TIM_IRQHandler(&htim17);
+    /* USER CODE BEGIN TIM17_IRQn 1 */
 
-  /* USER CODE END TIM17_IRQn 1 */
+    SEGGER_SYSVIEW_RecordExitISR();
+    /* USER CODE END TIM17_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  switch (GPIO_Pin)
-  {
-  case GPIO_PIN_7:   // PB7 = BMI270 DRDY
-    BMI270_DRDY_Handler();
-    break;
+    switch (GPIO_Pin)
+    {
+    case GPIO_PIN_0: // PD0 = SPL06 压力数据就绪
+        SPL06_DRDY_Handler();
+        break;
 
-  case GPIO_PIN_15:  // PC15 = BMI088 GYRO DRDY (如果同时使用)
-    BMI088_GYRO_DRDY_Handler();
-    break;
+    case GPIO_PIN_7: // PB7 = BMI270 DRDY
+        BMI270_DRDY_Handler();
+        break;
 
-  default:
-    break;
-  }
+    case GPIO_PIN_15: // PC15 = BMI088 GYRO DRDY (如果同时使用)
+        BMI088_GYRO_DRDY_Handler();
+        break;
+
+    default:
+        break;
+    }
 }
 /* USER CODE END 1 */

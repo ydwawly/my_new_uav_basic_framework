@@ -27,15 +27,10 @@ void Bsp_RTT_Init();
  * @brief 日志功能原型,供下面的LOGI,LOGW,LOGE等使用
  *
  */
-#define RTT_PROTO(type, color, format, ...)                       \
-SEGGER_RTT_printf(BUFFER_INDEX, "  %s%s" format "\r\n%s", \
-color,                                  \
-type,                                   \
-##__VA_ARGS__,                          \
-RTT_CTRL_RESET)
+#define RTT_PROTO(type, color, format, ...)                                                                            \
+    SEGGER_RTT_printf(BUFFER_INDEX, "  %s%s" format "\r\n%s", color, type, ##__VA_ARGS__, RTT_CTRL_RESET)
 
-#define LOG_PROTO(type, color, format, ...) \
-RTT_PROTO(type, color, format, ##__VA_ARGS__)
+#define LOG_PROTO(type, color, format, ...) RTT_PROTO(type, color, format, ##__VA_ARGS__)
 
 /*----------------------------------------下面是日志输出的接口-------------------------------------------------*/
 
@@ -56,11 +51,11 @@ RTT_PROTO(type, color, format, ##__VA_ARGS__)
 #define RTTERROR(format, ...)
 #else
 // information level
-#define RTTINFO(format, ...) LOG_PROTO("I:", RTT_CTRL_TEXT_BRIGHT_GREEN, format, ##__VA_ARGS__)
+#define RTTINFO(format, ...)    LOG_PROTO("I:", RTT_CTRL_TEXT_BRIGHT_GREEN, format, ##__VA_ARGS__)
 // warning level
 #define RTTWARNING(format, ...) LOG_PROTO("W:", RTT_CTRL_TEXT_BRIGHT_YELLOW, format, ##__VA_ARGS__)
 // error level
-#define RTTERROR(format, ...) LOG_PROTO("E:", RTT_CTRL_TEXT_BRIGHT_RED, format, ##__VA_ARGS__)
+#define RTTERROR(format, ...)   LOG_PROTO("E:", RTT_CTRL_TEXT_BRIGHT_RED, format, ##__VA_ARGS__)
 #endif //  DISABLE_RTT_SYSTEM
 
 /**

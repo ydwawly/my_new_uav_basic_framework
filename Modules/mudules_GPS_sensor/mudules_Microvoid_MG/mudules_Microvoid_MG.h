@@ -13,28 +13,28 @@
 
 /* ========================== 私有配置 ========================== */
 
-#define GPS_UART_HANDLE          huart2   /* 按实际硬件修改 */
-#define GPS_SEQLOCK_MAX_RETRY    3U
-#define GPS_RX_BUF_SIZE          200U
+#define GPS_UART_HANDLE       huart2 /* 按实际硬件修改 */
+#define GPS_SEQLOCK_MAX_RETRY 3U
+#define GPS_RX_BUF_SIZE       200U
 /* ========================== 配置 ========================== */
 
-#define GPS_TOPIC_NAME  "gps_data"
+#define GPS_TOPIC_NAME "gps_data"
 /* ========================== UBX 协议定义 ========================== */
 
-#define UBX_SYNC1               0xB5U
-#define UBX_SYNC2               0x62U
+#define UBX_SYNC1 0xB5U
+#define UBX_SYNC2 0x62U
 
-#define UBX_NAV_CLASS           0x01U
-#define UBX_CFG_CLASS           0x06U
+#define UBX_NAV_CLASS 0x01U
+#define UBX_CFG_CLASS 0x06U
 
-#define UBX_NAV_PVT             0x07U
-#define UBX_CFG_PRT             0x00U
-#define UBX_CFG_MSG             0x01U
-#define UBX_CFG_RATE            0x08U
-#define UBX_CFG_NAV5            0x24U
+#define UBX_NAV_PVT  0x07U
+#define UBX_CFG_PRT  0x00U
+#define UBX_CFG_MSG  0x01U
+#define UBX_CFG_RATE 0x08U
+#define UBX_CFG_NAV5 0x24U
 
-#define UBX_PVT_PAYLOAD_LEN     92U
-#define UBX_MAX_PAYLOAD_LEN     96U
+#define UBX_PVT_PAYLOAD_LEN 92U
+#define UBX_MAX_PAYLOAD_LEN 96U
 
 /* ========================== 对外发布数据结构 ========================== */
 
@@ -47,29 +47,29 @@
 typedef struct
 {
     /* 定位 */
-    double   latitude;       /* deg */
-    double   longitude;      /* deg */
-    float    altitude_msl;   /* m 海拔 */
-    float    altitude_ellip; /* m 椭球高 */
+    double latitude;       /* deg */
+    double longitude;      /* deg */
+    float  altitude_msl;   /* m 海拔 */
+    float  altitude_ellip; /* m 椭球高 */
 
     /* 速度 */
-    float    velN;           /* m/s 北向 */
-    float    velE;           /* m/s 东向 */
-    float    velD;           /* m/s 地向(向下为正) */
-    float    ground_speed;   /* m/s 地面速度 */
-    float    heading;        /* deg 运动航向 */
+    float velN;         /* m/s 北向 */
+    float velE;         /* m/s 东向 */
+    float velD;         /* m/s 地向(向下为正) */
+    float ground_speed; /* m/s 地面速度 */
+    float heading;      /* deg 运动航向 */
 
     /* 精度估计 */
-    float    hAcc;           /* m 水平精度 */
-    float    vAcc;           /* m 垂直精度 */
-    float    sAcc;           /* m/s 速度精度 */
-    float    headAcc;        /* deg 航向精度 */
-    float    pDOP;           /* 位置精度因子 */
+    float hAcc;    /* m 水平精度 */
+    float vAcc;    /* m 垂直精度 */
+    float sAcc;    /* m/s 速度精度 */
+    float headAcc; /* deg 航向精度 */
+    float pDOP;    /* 位置精度因子 */
 
     /* 定位状态 */
-    uint8_t  fix_type;       /* GNSS 定位类型 */
-    uint8_t  num_sv;         /* 参与定位卫星数 */
-    uint8_t  fix_flags;      /* 定位标志位 */
+    uint8_t fix_type;  /* GNSS 定位类型 */
+    uint8_t num_sv;    /* 参与定位卫星数 */
+    uint8_t fix_flags; /* 定位标志位 */
 
     /* UTC 时间 */
     uint16_t year;
@@ -78,7 +78,7 @@ typedef struct
     uint8_t  hour;
     uint8_t  min;
     uint8_t  sec;
-    uint8_t  time_valid;     /* 时间有效性标志 */
+    uint8_t  time_valid; /* 时间有效性标志 */
 
     /* 本地采集时间戳 */
     uint64_t GPS_Timestamp;
@@ -102,13 +102,13 @@ typedef enum
 typedef struct
 {
     UBX_ParseState_e state;
-    uint8_t  msg_class;
-    uint8_t  msg_id;
-    uint16_t length;
-    uint16_t count;
-    uint8_t  ck_a;
-    uint8_t  ck_b;
-    uint8_t  payload[UBX_MAX_PAYLOAD_LEN];
+    uint8_t          msg_class;
+    uint8_t          msg_id;
+    uint16_t         length;
+    uint16_t         count;
+    uint8_t          ck_a;
+    uint8_t          ck_b;
+    uint8_t          payload[UBX_MAX_PAYLOAD_LEN];
 } UBX_Parser_t;
 
 /* ========================== NAV-PVT 负载结构体 ========================== */

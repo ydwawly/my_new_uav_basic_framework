@@ -22,74 +22,110 @@
 #define __STM32H7xx_IT_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C"
+{
 #endif
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+    /* Private includes ----------------------------------------------------------*/
+    /* USER CODE BEGIN Includes */
 
-/* USER CODE END Includes */
+    /* USER CODE END Includes */
 
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
+    /* Exported types ------------------------------------------------------------*/
+    /* USER CODE BEGIN ET */
 
-/* USER CODE END ET */
+    typedef enum
+    {
+        FAULT_TYPE_NONE = 0U,
+        FAULT_TYPE_HARD,
+        FAULT_TYPE_MEMORY,
+        FAULT_TYPE_BUS,
+        FAULT_TYPE_USAGE,
+    } FaultType_e;
 
-/* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
+    /**
+ * @brief Cortex-M7 故障寄存器快照
+ *
+ * fault_magic 等于 0x4641554C（ASCII "FAUL"）表示已记录过一次异常。
+ * 发生异常后可在调试器中直接观察 fault_diagnostic，定位是非法地址、
+ * 非对齐访问、未定义指令还是可配置 Fault 升级成了 HardFault。
+ */
+    typedef struct
+    {
+        uint32_t    fault_magic;
+        FaultType_e fault_type;
+        uint32_t    ipsr;
+        uint32_t    cfsr;
+        uint32_t    hfsr;
+        uint32_t    dfsr;
+        uint32_t    afsr;
+        uint32_t    mmfar;
+        uint32_t    bfar;
+        uint32_t    shcsr;
+    } FaultDiagnostic_t;
 
-/* USER CODE END EC */
+    extern volatile FaultDiagnostic_t fault_diagnostic;
 
-/* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
+    /* USER CODE END ET */
 
-/* USER CODE END EM */
+    /* Exported constants --------------------------------------------------------*/
+    /* USER CODE BEGIN EC */
 
-/* Exported functions prototypes ---------------------------------------------*/
-void NMI_Handler(void);
-void HardFault_Handler(void);
-void MemManage_Handler(void);
-void BusFault_Handler(void);
-void UsageFault_Handler(void);
-void DebugMon_Handler(void);
-void EXTI0_IRQHandler(void);
-void DMA1_Stream0_IRQHandler(void);
-void DMA1_Stream1_IRQHandler(void);
-void DMA1_Stream2_IRQHandler(void);
-void DMA1_Stream3_IRQHandler(void);
-void DMA1_Stream4_IRQHandler(void);
-void DMA1_Stream5_IRQHandler(void);
-void DMA1_Stream6_IRQHandler(void);
-void FDCAN1_IT0_IRQHandler(void);
-void FDCAN1_IT1_IRQHandler(void);
-void EXTI9_5_IRQHandler(void);
-void TIM2_IRQHandler(void);
-void I2C2_EV_IRQHandler(void);
-void I2C2_ER_IRQHandler(void);
-void SPI2_IRQHandler(void);
-void USART1_IRQHandler(void);
-void USART2_IRQHandler(void);
-void USART3_IRQHandler(void);
-void EXTI15_10_IRQHandler(void);
-void DMA1_Stream7_IRQHandler(void);
-void SDMMC1_IRQHandler(void);
-void SPI3_IRQHandler(void);
-void UART4_IRQHandler(void);
-void UART5_IRQHandler(void);
-void DMA2_Stream0_IRQHandler(void);
-void DMA2_Stream1_IRQHandler(void);
-void DMA2_Stream3_IRQHandler(void);
-void DMA2_Stream4_IRQHandler(void);
-void DMA2_Stream5_IRQHandler(void);
-void DMA2_Stream7_IRQHandler(void);
-void USART6_IRQHandler(void);
-void UART7_IRQHandler(void);
-void UART8_IRQHandler(void);
-void OTG_FS_IRQHandler(void);
-void TIM17_IRQHandler(void);
-/* USER CODE BEGIN EFP */
+    /* USER CODE END EC */
 
-/* USER CODE END EFP */
+    /* Exported macro ------------------------------------------------------------*/
+    /* USER CODE BEGIN EM */
+
+    /* USER CODE END EM */
+
+    /* Exported functions prototypes ---------------------------------------------*/
+    void NMI_Handler(void);
+    void HardFault_Handler(void);
+    void MemManage_Handler(void);
+    void BusFault_Handler(void);
+    void UsageFault_Handler(void);
+    void DebugMon_Handler(void);
+    void EXTI0_IRQHandler(void);
+    void DMA1_Stream0_IRQHandler(void);
+    void DMA1_Stream1_IRQHandler(void);
+    void DMA1_Stream2_IRQHandler(void);
+    void DMA1_Stream3_IRQHandler(void);
+    void DMA1_Stream4_IRQHandler(void);
+    void DMA1_Stream5_IRQHandler(void);
+    void DMA1_Stream6_IRQHandler(void);
+    void FDCAN1_IT0_IRQHandler(void);
+    void FDCAN1_IT1_IRQHandler(void);
+    void EXTI9_5_IRQHandler(void);
+    void TIM2_IRQHandler(void);
+    void I2C2_EV_IRQHandler(void);
+    void I2C2_ER_IRQHandler(void);
+    void SPI2_IRQHandler(void);
+    void USART1_IRQHandler(void);
+    void USART2_IRQHandler(void);
+    void USART3_IRQHandler(void);
+    void EXTI15_10_IRQHandler(void);
+    void DMA1_Stream7_IRQHandler(void);
+    void SDMMC1_IRQHandler(void);
+    void SPI3_IRQHandler(void);
+    void UART4_IRQHandler(void);
+    void UART5_IRQHandler(void);
+    void DMA2_Stream0_IRQHandler(void);
+    void DMA2_Stream1_IRQHandler(void);
+    void DMA2_Stream3_IRQHandler(void);
+    void DMA2_Stream4_IRQHandler(void);
+    void DMA2_Stream5_IRQHandler(void);
+    void DMA2_Stream7_IRQHandler(void);
+    void USART6_IRQHandler(void);
+    void UART7_IRQHandler(void);
+    void UART8_IRQHandler(void);
+    void OTG_FS_IRQHandler(void);
+    void TIM17_IRQHandler(void);
+    /* USER CODE BEGIN EFP */
+
+    /** @brief 调度器启动后允许中断处理函数写入 SystemView。 */
+    void SystemView_ISRTraceSetReady(void);
+
+    /* USER CODE END EFP */
 
 #ifdef __cplusplus
 }

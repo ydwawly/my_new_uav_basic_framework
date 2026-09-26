@@ -6,21 +6,23 @@
 
 /* 静态变量定义在 .c 文件中，确保全局只有一份，并且仅被此文件内部直接访问 */
 DMA_BUFFER static uint8_t bsp_dma_mem_pool[BSP_DMA_MEM_POOL_SIZE];
-static size_t bsp_dma_mem_offset = 0U;
+static size_t             bsp_dma_mem_offset = 0U;
 
 void *BSP_DMA_Malloc(size_t size)
 {
     size_t aligned_size;
-    void *ptr;
+    void  *ptr;
 
-    if (size == 0U) {
+    if (size == 0U)
+    {
         return NULL;
     }
 
     /* 32字节对齐 */
     aligned_size = (size + 31U) & ~(size_t)31U;
 
-    if ((bsp_dma_mem_offset + aligned_size) > BSP_DMA_MEM_POOL_SIZE) {
+    if ((bsp_dma_mem_offset + aligned_size) > BSP_DMA_MEM_POOL_SIZE)
+    {
         RTTERROR("[bsp_alloc] DMA pool exhausted: %u bytes.", (unsigned int)size);
         return NULL;
     }

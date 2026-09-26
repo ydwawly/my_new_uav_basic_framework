@@ -25,7 +25,7 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef        htim17;
+TIM_HandleTypeDef htim17;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -40,60 +40,60 @@ TIM_HandleTypeDef        htim17;
   */
 HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 {
-  RCC_ClkInitTypeDef    clkconfig;
-  uint32_t              uwTimclock;
+    RCC_ClkInitTypeDef clkconfig;
+    uint32_t           uwTimclock;
 
-  uint32_t              uwPrescalerValue;
-  uint32_t              pFLatency;
-/*Configure the TIM17 IRQ priority */
-  if (TickPriority < (1UL << __NVIC_PRIO_BITS))
-  {
-  HAL_NVIC_SetPriority(TIM17_IRQn, TickPriority ,0U);
+    uint32_t uwPrescalerValue;
+    uint32_t pFLatency;
+    /*Configure the TIM17 IRQ priority */
+    if (TickPriority < (1UL << __NVIC_PRIO_BITS))
+    {
+        HAL_NVIC_SetPriority(TIM17_IRQn, TickPriority, 0U);
 
-  /* Enable the TIM17 global Interrupt */
-  HAL_NVIC_EnableIRQ(TIM17_IRQn);
-    uwTickPrio = TickPriority;
+        /* Enable the TIM17 global Interrupt */
+        HAL_NVIC_EnableIRQ(TIM17_IRQn);
+        uwTickPrio = TickPriority;
     }
-  else
-  {
-    return HAL_ERROR;
-  }
+    else
+    {
+        return HAL_ERROR;
+    }
 
-  /* Enable TIM17 clock */
-  __HAL_RCC_TIM17_CLK_ENABLE();
+    /* Enable TIM17 clock */
+    __HAL_RCC_TIM17_CLK_ENABLE();
 
-  /* Get clock configuration */
-  HAL_RCC_GetClockConfig(&clkconfig, &pFLatency);
+    /* Get clock configuration */
+    HAL_RCC_GetClockConfig(&clkconfig, &pFLatency);
 
-  /* Compute TIM17 clock */
-      uwTimclock = 2*HAL_RCC_GetPCLK2Freq();
+    /* Compute TIM17 clock */
+    uwTimclock = 2 * HAL_RCC_GetPCLK2Freq();
 
-  /* Compute the prescaler value to have TIM17 counter clock equal to 1MHz */
-  uwPrescalerValue = (uint32_t) ((uwTimclock / 1000000U) - 1U);
+    /* Compute the prescaler value to have TIM17 counter clock equal to 1MHz */
+    uwPrescalerValue = (uint32_t)((uwTimclock / 1000000U) - 1U);
 
-  /* Initialize TIM17 */
-  htim17.Instance = TIM17;
+    /* Initialize TIM17 */
+    htim17.Instance = TIM17;
 
-  /* Initialize TIMx peripheral as follow:
+    /* Initialize TIMx peripheral as follow:
 
   + Period = [(TIM17CLK/1000) - 1]. to have a (1/1000) s time base.
   + Prescaler = (uwTimclock/1000000 - 1) to have a 1MHz counter clock.
   + ClockDivision = 0
   + Counter direction = Up
   */
-  htim17.Init.Period = (1000000U / 1000U) - 1U;
-  htim17.Init.Prescaler = uwPrescalerValue;
-  htim17.Init.ClockDivision = 0;
-  htim17.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim17.Init.Period        = (1000000U / 1000U) - 1U;
+    htim17.Init.Prescaler     = uwPrescalerValue;
+    htim17.Init.ClockDivision = 0;
+    htim17.Init.CounterMode   = TIM_COUNTERMODE_UP;
 
-  if(HAL_TIM_Base_Init(&htim17) == HAL_OK)
-  {
-    /* Start the TIM time Base generation in interrupt mode */
-    return HAL_TIM_Base_Start_IT(&htim17);
-  }
+    if (HAL_TIM_Base_Init(&htim17) == HAL_OK)
+    {
+        /* Start the TIM time Base generation in interrupt mode */
+        return HAL_TIM_Base_Start_IT(&htim17);
+    }
 
-  /* Return function status */
-  return HAL_ERROR;
+    /* Return function status */
+    return HAL_ERROR;
 }
 
 /**
@@ -104,8 +104,8 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   */
 void HAL_SuspendTick(void)
 {
-  /* Disable TIM17 update Interrupt */
-  __HAL_TIM_DISABLE_IT(&htim17, TIM_IT_UPDATE);
+    /* Disable TIM17 update Interrupt */
+    __HAL_TIM_DISABLE_IT(&htim17, TIM_IT_UPDATE);
 }
 
 /**
@@ -116,7 +116,6 @@ void HAL_SuspendTick(void)
   */
 void HAL_ResumeTick(void)
 {
-  /* Enable TIM17 Update interrupt */
-  __HAL_TIM_ENABLE_IT(&htim17, TIM_IT_UPDATE);
+    /* Enable TIM17 Update interrupt */
+    __HAL_TIM_ENABLE_IT(&htim17, TIM_IT_UPDATE);
 }
-

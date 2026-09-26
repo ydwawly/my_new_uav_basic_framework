@@ -12,8 +12,8 @@
 
 /* ========================== 宏配置 ========================== */
 
-#define DEVICE_USART_CNT     8U    /* 最多注册的串口实例数量 */
-#define USART_RXBUFF_LIMIT   1024U /* 单个接收缓冲区的最大字节数 */
+#define DEVICE_USART_CNT   8U    /* 最多注册的串口实例数量 */
+#define USART_RXBUFF_LIMIT 1024U /* 单个接收缓冲区的最大字节数 */
 
 /* ========================== 类型定义 ========================== */
 
@@ -83,8 +83,8 @@ typedef void (*usart_event_callback)(USARTInstance *inst, USART_Event_e event, u
  */
 struct USARTInstance_t
 {
-    UART_HandleTypeDef   *usart_handle;   /* HAL 串口句柄 */
-    usart_event_callback  event_callback; /* 新增：统一事件回调，运行于 ISR */
+    UART_HandleTypeDef  *usart_handle;   /* HAL 串口句柄 */
+    usart_event_callback event_callback; /* 新增：统一事件回调，运行于 ISR */
 
     USART_RX_MODE rx_mode;        /* 接收模式 */
     uint16_t      recv_buff_size; /* 接收缓冲区大小（字节），CIRCULAR 下为环形区大小 */
@@ -100,10 +100,10 @@ struct USARTInstance_t
  */
 typedef struct
 {
-    UART_HandleTypeDef   *usart_handle;   /* HAL 串口句柄，不得为 NULL */
-    usart_event_callback  event_callback; /* 新增：统一事件回调，可为 NULL（仅收发不处理）*/
-    USART_RX_MODE         rx_mode;        /* 接收模式 */
-    uint16_t              recv_buff_size; /* 接收缓冲区大小，范围 (0, USART_RXBUFF_LIMIT] */
+    UART_HandleTypeDef  *usart_handle;   /* HAL 串口句柄，不得为 NULL */
+    usart_event_callback event_callback; /* 新增：统一事件回调，可为 NULL（仅收发不处理）*/
+    USART_RX_MODE        rx_mode;        /* 接收模式 */
+    uint16_t             recv_buff_size; /* 接收缓冲区大小，范围 (0, USART_RXBUFF_LIMIT] */
 } USART_Init_Config_s;
 
 /* ========================== 接口声明 ========================== */
@@ -126,7 +126,7 @@ USARTInstance *USARTRegister(USART_Init_Config_s *init_config);
  *
  * @note   通常由内部在错误恢复时调用，外部如需手动重启接收可调用此函数
  */
-void USARTServiceInit(USARTInstance *instance);
+uint8_t USARTServiceInit(USARTInstance *instance);
 
 /**
  * @brief  向串口发送数据
@@ -139,10 +139,7 @@ void USARTServiceInit(USARTInstance *instance);
  * @note   IT/DMA 模式下，send_buf 必须在发送完成前保持有效（不得为局部变量）
  * @note   调用前建议先用 USARTIsTransmitReady() 确认发送链路空闲
  */
-void USARTSend(USARTInstance    *instance,
-               uint8_t          *send_buf,
-               uint16_t          send_size,
-               USART_TRANSFER_MODE mode);
+void USARTSend(USARTInstance *instance, uint8_t *send_buf, uint16_t send_size, USART_TRANSFER_MODE mode);
 
 /**
  * @brief  查询发送链路是否空闲

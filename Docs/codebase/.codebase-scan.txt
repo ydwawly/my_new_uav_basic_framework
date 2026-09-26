@@ -1,0 +1,384 @@
+
+=== DIRECTORY TREE (max depth 3, source files only) ===
+.clang-format
+.cproject
+.gitignore
+.idea
+.idea\.gitignore
+.idea\.name
+.idea\codeStyles
+.idea\codeStyles\codeStyleConfig.xml
+.idea\codeStyles\Project.xml
+.idea\copilot.data.migration.agent.xml
+.idea\editor.xml
+.idea\misc.xml
+.idea\modules.xml
+.idea\my_new_uav_basic_framework_release_clean.iml
+.idea\vcs.xml
+.idea\workspace.xml
+.mxproject
+.project
+Application
+Application\App_attitude
+Application\App_attitude\App_attitude.c
+Application\App_attitude\App_attitude.h
+Application\App_attitude\App_attitude_config.h
+Application\App_attitude\App_attitude_hil.c
+Application\App_attitude\App_attitude_hil.h
+Application\App_attitude\App_attitude_internal.h
+Application\App_attitude\App_attitude_observations.c
+Application\App_attitude\App_attitude_observations.h
+Application\App_Controll
+Application\App_Controll\App_Controll.c
+Application\App_Controll\App_Controll.h
+Application\App_Data_Comm
+Application\App_Data_Comm\App_Data_Comm.c
+Application\App_Data_Comm\App_Data_Comm.h
+Application\App_Data_Comm\command_service.c
+Application\App_Data_Comm\command_service.h
+Application\App_Data_Comm\hil_service.c
+Application\App_Data_Comm\hil_service.h
+Application\App_Data_Comm\log_service.c
+Application\App_Data_Comm\log_service.h
+Application\App_Data_Comm\param_service.c
+Application\App_Data_Comm\param_service.h
+Application\App_Data_Comm\system_service.c
+Application\App_Data_Comm\system_service.h
+Application\App_Performance
+Application\App_Performance\App_Performance.c
+Application\App_Performance\App_Performance.h
+Application\App_Sensor
+Application\App_Sensor\App_Sensor.c
+Application\App_Sensor\App_Sensor.h
+Application\App_SystemInit.c
+Application\App_SystemInit.h
+Application\App_Uav_Cmd
+Application\App_Uav_Cmd\App_Uav_Cmd.c
+Application\App_Uav_Cmd\App_Uav_Cmd.h
+Application\App_Uav_Cmd\App_Uav_Cmd_config.h
+Application\DataRouterTask
+Application\DataRouterTask\DataRouterTask.c
+Application\DataRouterTask\DataRouterTask.h
+Bsp
+Bsp\bsp_iic
+Bsp\bsp_iic\bsp_iic.c
+Bsp\bsp_iic\bsp_iic.h
+Bsp\bsp_init.h
+Bsp\bsp_memory_section
+Bsp\bsp_memory_section\bsp_memory_section.c
+Bsp\bsp_memory_section\bsp_memory_section.h
+Bsp\bsp_mpu
+Bsp\bsp_mpu\bsp_mpu.c
+Bsp\bsp_mpu\bsp_mpu.h
+Bsp\bsp_pwm
+Bsp\bsp_pwm\bsp_pwm.c
+Bsp\bsp_pwm\bsp_pwm.h
+Bsp\bsp_ringbuffer
+Bsp\bsp_ringbuffer\bsp_ringbuffer.c
+Bsp\bsp_ringbuffer\bsp_ringbuffer.h
+Bsp\bsp_ringbuffer\bsp_ringbuffer.md
+Bsp\bsp_RTT
+Bsp\bsp_RTT\bsp_RTT.c
+Bsp\bsp_RTT\bsp_RTT.h
+Bsp\bsp_RTT\bsp_RTT.md
+Bsp\bsp_spi
+Bsp\bsp_spi\bsp_spi.c
+Bsp\bsp_spi\bsp_spi.h
+Bsp\bsp_timestamp
+Bsp\bsp_timestamp\bsp_timestamp.c
+Bsp\bsp_timestamp\bsp_timestamp.h
+Bsp\bsp_uart
+Bsp\bsp_uart\bsp_uart.c
+Bsp\bsp_uart\bsp_uart.h
+Bsp\bsp_usb
+Bsp\bsp_usb\bsp_usb.c
+Bsp\bsp_usb\bsp_usb.h
+Bsp\bsp_utils_seqlock
+Bsp\bsp_utils_seqlock\bsp_utils_seqlock.h
+cmake-build-debug
+cmake-build-debug\.cmake
+cmake-build-debug\.cmake\api
+cmake-build-debug\.cmake\api\v1
+cmake-build-debug\.gitignore
+cmake-build-debug\.ninja_deps
+cmake-build-debug\.ninja_log
+cmake-build-debug\build.ninja
+cmake-build-debug\cmake_install.cmake
+cmake-build-debug\CMakeCache.txt
+cmake-build-debug\CMakeFiles
+cmake-build-debug\CMakeFiles\4.0.2
+cmake-build-debug\CMakeFiles\4.0.2\CMakeASMCompiler.cmake
+cmake-build-debug\CMakeFiles\4.0.2\CMakeCCompiler.cmake
+cmake-build-debug\CMakeFiles\4.0.2\CMakeCXXCompiler.cmake
+cmake-build-debug\CMakeFiles\4.0.2\CMakeDetermineCompilerABI_C.bin
+cmake-build-debug\CMakeFiles\4.0.2\CMakeDetermineCompilerABI_CXX.bin
+cmake-build-debug\CMakeFiles\4.0.2\CMakeSystem.cmake
+cmake-build-debug\CMakeFiles\4.0.2\CompilerIdASM
+cmake-build-debug\CMakeFiles\4.0.2\CompilerIdC
+cmake-build-debug\CMakeFiles\4.0.2\CompilerIdCXX
+cmake-build-debug\CMakeFiles\clion-Debug-log.txt
+cmake-build-debug\CMakeFiles\clion-environment.txt
+cmake-build-debug\CMakeFiles\cmake.check_cache
+cmake-build-debug\CMakeFiles\cmake.verify_globs
+cmake-build-debug\CMakeFiles\CMakeConfigureLog.yaml
+cmake-build-debug\CMakeFiles\format-check-8860b25.bat
+cmake-build-debug\CMakeFiles\InstallScripts.json
+cmake-build-debug\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir
+cmake-build-debug\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Application
+cmake-build-debug\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Bsp
+cmake-build-debug\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Core
+cmake-build-debug\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Drivers
+cmake-build-debug\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\FATFS
+cmake-build-debug\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Middlewares
+cmake-build-debug\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Modules
+cmake-build-debug\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\USB_DEVICE
+cmake-build-debug\CMakeFiles\pkgRedirects
+cmake-build-debug\CMakeFiles\rules.ninja
+cmake-build-debug\CMakeFiles\TargetDirectories.txt
+cmake-build-debug\CMakeFiles\VerifyGlobs.cmake
+cmake-build-debug\CTestTestfile.cmake
+cmake-build-debug\my_new_uav_baice_framework_readable.bin
+cmake-build-debug\my_new_uav_baice_framework_readable.elf
+cmake-build-debug\my_new_uav_baice_framework_readable.hex
+cmake-build-debug\my_new_uav_baice_framework_readable.map
+cmake-build-debug\Testing
+cmake-build-debug\Testing\Temporary
+cmake-build-debug\Testing\Temporary\CTestCostData.txt
+cmake-build-debug\Testing\Temporary\LastTest.log
+cmake-build-hil-refactor
+cmake-build-hil-refactor\.ninja_deps
+cmake-build-hil-refactor\.ninja_log
+cmake-build-hil-refactor\build.ninja
+cmake-build-hil-refactor\cmake_install.cmake
+cmake-build-hil-refactor\CMakeCache.txt
+cmake-build-hil-refactor\CMakeFiles
+cmake-build-hil-refactor\CMakeFiles\4.0.2
+cmake-build-hil-refactor\CMakeFiles\4.0.2\CMakeASMCompiler.cmake
+cmake-build-hil-refactor\CMakeFiles\4.0.2\CMakeCCompiler.cmake
+cmake-build-hil-refactor\CMakeFiles\4.0.2\CMakeCXXCompiler.cmake
+cmake-build-hil-refactor\CMakeFiles\4.0.2\CMakeDetermineCompilerABI_C.bin
+cmake-build-hil-refactor\CMakeFiles\4.0.2\CMakeDetermineCompilerABI_CXX.bin
+cmake-build-hil-refactor\CMakeFiles\4.0.2\CMakeSystem.cmake
+cmake-build-hil-refactor\CMakeFiles\4.0.2\CompilerIdASM
+cmake-build-hil-refactor\CMakeFiles\4.0.2\CompilerIdC
+cmake-build-hil-refactor\CMakeFiles\4.0.2\CompilerIdCXX
+cmake-build-hil-refactor\CMakeFiles\cmake.check_cache
+cmake-build-hil-refactor\CMakeFiles\cmake.verify_globs
+cmake-build-hil-refactor\CMakeFiles\CMakeConfigureLog.yaml
+cmake-build-hil-refactor\CMakeFiles\format-check-8860b25.bat
+cmake-build-hil-refactor\CMakeFiles\InstallScripts.json
+cmake-build-hil-refactor\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir
+cmake-build-hil-refactor\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Application
+cmake-build-hil-refactor\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Bsp
+cmake-build-hil-refactor\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Core
+cmake-build-hil-refactor\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Drivers
+cmake-build-hil-refactor\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\FATFS
+cmake-build-hil-refactor\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Middlewares
+cmake-build-hil-refactor\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\Modules
+cmake-build-hil-refactor\CMakeFiles\my_new_uav_baice_framework_readable.elf.dir\USB_DEVICE
+cmake-build-hil-refactor\CMakeFiles\pkgRedirects
+cmake-build-hil-refactor\CMakeFiles\rules.ninja
+cmake-build-hil-refactor\CMakeFiles\TargetDirectories.txt
+cmake-build-hil-refactor\CMakeFiles\VerifyGlobs.cmake
+cmake-build-hil-refactor\CTestTestfile.cmake
+cmake-build-hil-refactor\my_new_uav_baice_framework_readable.bin
+cmake-build-hil-refactor\my_new_uav_baice_framework_readable.elf
+cmake-build-hil-refactor\my_new_uav_baice_framework_readable.hex
+cmake-build-hil-refactor\my_new_uav_baice_framework_readable.map
+cmake-build-hil-refactor\Testing
+cmake-build-hil-refactor\Testing\Temporary
+cmake-build-hil-refactor\Testing\Temporary\CTestCostData.txt
+cmake-build-hil-refactor\Testing\Temporary\LastTest.log
+cmake-build-release-axis-notch
+cmake-build-release-axis-notch\CMakeCache.txt
+cmake-build-release-axis-notch\CMakeFiles
+cmake-build-release-axis-notch\CMakeFiles\cmake.check_cache
+cmake-build-release-axis-notch\CMakeFiles\pkgRedirects
+cmake-build-release-axis-notch-clean
+cmake-build-release-axis-notch-clean\.ninja_deps
+cmake-build-release-axis-notch-clean\.ninja_log
+cmake-build-release-axis-notch-clean\build.ninja
+cmake-build-release-axis-notch-clean\cmake_install.cmake
+cmake-build-release-axis-notch-clean\CMakeCache.txt
+
+=== STACK DETECTION (manifest files) ===
+
+--- CMakeLists.txt ---
+cmake_minimum_required(VERSION 4.0)
+
+# STM32H743VITX / Cortex-M7 / hard-float ARM GCC firmware.
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_VERSION 1)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+set(CMAKE_C_COMPILER arm-none-eabi-gcc)
+set(CMAKE_CXX_COMPILER arm-none-eabi-g++)
+set(CMAKE_ASM_COMPILER arm-none-eabi-gcc)
+set(CMAKE_AR arm-none-eabi-ar)
+set(CMAKE_OBJCOPY arm-none-eabi-objcopy)
+set(CMAKE_OBJDUMP arm-none-eabi-objdump)
+set(SIZE arm-none-eabi-size)
+
+project(my_new_uav_baice_framework_readable C CXX ASM)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_compile_definitions(
+        USE_HAL_DRIVER
+        USE_FLASH_ECC=0
+        configUSE_QUEUE_SETS=0
+        INCLUDE_xTaskGetIdleTaskHandle=0
+        USBD_CLASS_BOS_ENABLED=0
+        USBD_USER_REGISTER_CALLBACK=0
+        STM32H743xx
+        ARM_MATH_CM7
+        ARM_MATH_MATRIX_CHECK
+        ARM_MATH_ROUNDING
+)
+
+set(MCU_OPTIONS
+        -mcpu=cortex-m7
+        -mthumb
+        -mfpu=fpv5-d16
+        -mfloat-abi=hard
+)
+
+add_compile_options(
+        ${MCU_OPTIONS}
+        $<$<COMPILE_LANGUAGE:C>:-include>
+        $<$<COMPILE_LANGUAGE:C>:stm32h7xx.h>
+        $<$<COMPILE_LANGUAGE:CXX>:-include>
+        $<$<COMPILE_LANGUAGE:CXX>:stm32h7xx.h>
+        $<$<COMPILE_LANGUAGE:ASM>:-x$<SEMICOLON>assembler-with-cpp>
+        -ffunction-sections
+        -fdata-sections
+        -fno-common
+        -fmessage-length=0
+        -Wno-address-of-packed-member
+)
+add_link_options(${MCU_OPTIONS})
+
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    message(STATUS "Build type: Release - Maximum optimization for speed")
+    # NaN/Inf guards in sensor and control safety checks must remain effective.
+    add_compile_options(-Ofast -fno-finite-math-only)
+elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    message(STATUS "Build type: RelWithDebInfo - Speed optimization + debug info")
+    # Ozone 3.x parses DWARF-4 reliably. Keep Ofast so debug builds retain flight code generation.
+    add_compile_options(-Ofast -fno-finite-math-only -g3 -gdwarf-4)
+elseif (CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+    message(STATUS "Build type: MinSizeRel - Optimize for size")
+    add_compile_options(-Os)
+else ()
+    message(STATUS "Build type: Debug - Minimal optimization + debug info")
+    add_compile_options(-Og -g)
+endif ()
+
+# Select the first FreeRTOS GCC port present in this Cube package.
+set(FREERTOS_PORT_BASE "${CMAKE_SOURCE_DIR}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC")
+set(FREERTOS_PORT_CANDIDATES
+        "${FREERTOS_PORT_BASE}/ARM_CM7/r0p1"
+        "${FREERTOS_PORT_BASE}/ARM_CM7/r0p0"
+        "${FREERTOS_PORT_BASE}/ARM_CM7"
+        "${FREERTOS_PORT_BASE}/ARM_CM4F"
+
+[TRUNCATED] Showing first 80 of 314 lines.
+
+=== ENTRY POINTS ===
+No common entry points found. Check 'main' or 'scripts.start' in manifest files above.
+
+=== LINTING AND FORMATTING CONFIG ===
+No linting or formatting config files found in project root.
+
+=== ENVIRONMENT VARIABLE TEMPLATES ===
+No .env.example or .env.template found. Identify required environment variables by searching the code and config for environment variable reads.
+
+=== TODO / FIXME / HACK (production code only, test dirs excluded) ===
+Application\App_Data_Comm\command_service.c:86: * TODO: 后续可在此处扩展其他常用指令支持，例如：
+Middlewares\Third_Party\SEGGER\Config\SEGGER_SYSVIEW_Conf.h:78: * TODO: Add your defines here.                                       *
+Modules\modules_Mavlink\c_library_v2-master\mavlink_helpers.h:1174: //FIXME
+
+=== GIT RECENT COMMITS (last 20) ===
+e00125b Document formal firmware refactor candidate
+3eb05e8 Simplify and verify I2C bus transfers
+1ac3a87 Flatten SBUS command publishing
+e8c3ab4 Simplify and verify SPI bus transfers
+0c44298 Deduplicate blackbox log paths
+1380871 Remove dormant real-sensor scaffolding
+3d07662 Make fixed attitude tuning explicit
+9adefb3 Flatten redundant control dispatch
+b95408a Plan production firmware simplification
+e3fef3a Document refactor validation and artifacts
+a2310c0 Reduce flight log stack usage
+6a90f74 Clarify flight logging and SD ownership
+015cb74 Simplify control state transitions
+a7f40d2 Condense STM32 build configuration
+2b48aaa Split HIL attitude source from estimator task
+f4e4aca Keep control implementation details private
+e3ed79f Make code quality gate evidence based
+732266a Capture flown firmware refactor baseline
+
+=== HIGH-CHURN FILES (last 90 days, top 20) ===
+   6 Tests/control_pid_config_regression.py
+   5 Application/App_Controll/App_Controll.c
+   4 CMakeLists.txt
+   4 Application/App_Data_Comm/log_service.c
+   4 Application/App_attitude/App_attitude.c
+   4 Application/App_attitude/App_attitude.h
+   3 Firmware/MANIFEST.md
+   3 Application/App_Uav_Cmd/App_Uav_Cmd.c
+   3 Modules/modules_SD_Card/modules_SD_Card.c
+   3 Modules/modules_SD_Card/modules_SD_Card.h
+   3 Application/App_attitude/App_attitude_config.h
+   3 Tests/vqf_integration_regression.py
+   3 Application/App_Controll/App_Controll.h
+   2 plan/refactor-formal-firmware-code-2.md
+   2 Bsp/bsp_iic/bsp_iic.c
+   2 Bsp/bsp_iic/bsp_iic.h
+   2 Application/App_Uav_Cmd/App_Uav_Cmd_config.h
+   2 Bsp/bsp_spi/bsp_spi.c
+   2 Bsp/bsp_spi/bsp_spi.h
+   2 Modules/modules_SD_Card/modules_SD_Card_log_transfer.c
+
+=== MONOREPO SIGNALS ===
+Sub-package directory found: modules/
+
+=== CODE METRICS ===
+Total files scanned: 1762
+Total lines of code: 750349
+
+Files by language:
+  C Header: 784
+  Other: 781
+  C: 169
+  Python: 22
+  C++: 6
+
+Top 10 largest files:
+cmake-build-vqf-ozone\my_new_uav_baice_framework_readable.elf: 6001.4KB
+Firmware\uav_release_2026-09-07_formal_refactor_ozone.elf: 6001.4KB
+Firmware\uav_release_2026-09-06_readability_refactor_ozone.elf: 5993.4KB
+Firmware\uav_release_2026-08-29_altitude_mode_v3_ch_index5_ozone.elf: 5988.5KB
+Firmware\uav_release_2026-08-29_altitude_mode_v2_ozone.elf: 5981.1KB
+Firmware\uav_release_2026-08-29_altitude_hold_ozone.elf: 5973.9KB
+Firmware\uav_release_2026-08-28_vqf_eskf_flow_range_ozone.elf: 5966.7KB
+Firmware\uav_release_2026-08-27_vqf_eskf_compare_pid_ozone.elf: 5942.5KB
+Firmware\uav_release_2026-08-26_vqf6d_ieee_ozone.elf: 5808.8KB
+Firmware\uav_release_2026-08-26_vqf6d_ozone.elf: 5807.0KB
+
+=== CI/CD PIPELINES ===
+No CI/CD pipelines detected.
+
+=== CONTAINERS & ORCHESTRATION ===
+No containerization configs detected.
+
+=== SECURITY & COMPLIANCE ===
+No security configs detected.
+
+=== PERFORMANCE & TESTING ===
+No performance testing configs detected.
+
+=== SCAN COMPLETE ===
