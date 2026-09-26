@@ -3,8 +3,8 @@
  * @brief 飞控 SD 卡黑匣子的统一帧格式、运行状态与公共接口
  */
 
-#ifndef MY_NEW_UAV_BASIC_FRAMEWORK_MODULES_SD_CARD_H
-#define MY_NEW_UAV_BASIC_FRAMEWORK_MODULES_SD_CARD_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_SD_CARD_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_SD_CARD_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -457,4 +457,4 @@ void SDCard_Task(void *argument);
 }
 #endif
 
-#endif /* MY_NEW_UAV_BASIC_FRAMEWORK_MODULES_SD_CARD_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_SD_CARD_H */

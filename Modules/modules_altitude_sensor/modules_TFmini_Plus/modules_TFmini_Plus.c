@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/18.
-//
+/** @file modules_TFmini_Plus.c @brief TFmini Plus UART 帧解析与一致性快照实现。 */
 
 #include "modules_TFmini_Plus.h"
 #include <string.h>

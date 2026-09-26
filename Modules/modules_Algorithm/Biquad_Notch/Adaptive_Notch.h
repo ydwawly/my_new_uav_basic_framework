@@ -55,23 +55,23 @@ typedef struct
 {
     arm_rfft_instance_q15 fft;    /**< CMSIS-DSP Q15 实数 FFT 实例 */
     AdaptiveNotchConfig_t config; /**< 初始化时复制的参数，运行中只读 */
-    q15_t samples[ADAPTIVE_NOTCH_AXIS_COUNT][ADAPTIVE_NOTCH_FFT_SIZE]; /**< 三轴 Q15 滑动采样窗 */
-    q15_t window[ADAPTIVE_NOTCH_FFT_SIZE];                             /**< 预计算的 Q15 Hann 窗 */
-    q15_t fft_input[ADAPTIVE_NOTCH_FFT_SIZE];                          /**< 单轴加窗后的 FFT 输入 */
-    q15_t fft_output[ADAPTIVE_NOTCH_RFFT_OUTPUT_SIZE];                 /**< 单轴 RFFT 复数输出 */
-    float spectrum_power[ADAPTIVE_NOTCH_FFT_SIZE / 2U];                /**< 搜索频带内的功率谱 */
-    float center_hz[ADAPTIVE_NOTCH_AXIS_COUNT];                        /**< 当前三轴中心频率 */
-    float peak_snr[ADAPTIVE_NOTCH_AXIS_COUNT];                         /**< 最近一轮三轴谱峰 SNR */
-    uint32_t update_count[ADAPTIVE_NOTCH_AXIS_COUNT];                  /**< 三轴有效跟踪次数 */
-    uint32_t write_index;          /**< 下一帧样本写入滑动窗的位置 */
-    uint32_t sample_count;         /**< 当前有效样本数，最大为 FFT_SIZE */
-    uint32_t samples_since_update; /**< 距离上轮分析新增的样本数 */
-    uint64_t analysis_timestamp_us; /**< 当前分析窗最后一个样本的时间戳 */
-    uint8_t initialized;           /**< FFT 实例与窗口已初始化 */
-    uint8_t tracking_valid[ADAPTIVE_NOTCH_AXIS_COUNT]; /**< 三轴最近一次跟踪是否可信 */
-    uint8_t analysis_pending;      /**< 已锁定分析窗，等待完成三个轴 */
-    uint8_t next_analysis_axis;    /**< 下一次要处理的轴：0=X、1=Y、2=Z */
-    uint8_t analysis_changed_mask; /**< 本轮中心频率发生变化的轴位图 */
+    q15_t                 samples[ADAPTIVE_NOTCH_AXIS_COUNT][ADAPTIVE_NOTCH_FFT_SIZE]; /**< 三轴 Q15 滑动采样窗 */
+    q15_t                 window[ADAPTIVE_NOTCH_FFT_SIZE];                             /**< 预计算的 Q15 Hann 窗 */
+    q15_t                 fft_input[ADAPTIVE_NOTCH_FFT_SIZE];                          /**< 单轴加窗后的 FFT 输入 */
+    q15_t                 fft_output[ADAPTIVE_NOTCH_RFFT_OUTPUT_SIZE];                 /**< 单轴 RFFT 复数输出 */
+    float                 spectrum_power[ADAPTIVE_NOTCH_FFT_SIZE / 2U];                /**< 搜索频带内的功率谱 */
+    float                 center_hz[ADAPTIVE_NOTCH_AXIS_COUNT];                        /**< 当前三轴中心频率 */
+    float                 peak_snr[ADAPTIVE_NOTCH_AXIS_COUNT];                         /**< 最近一轮三轴谱峰 SNR */
+    uint32_t              update_count[ADAPTIVE_NOTCH_AXIS_COUNT];                     /**< 三轴有效跟踪次数 */
+    uint32_t              write_index;                               /**< 下一帧样本写入滑动窗的位置 */
+    uint32_t              sample_count;                              /**< 当前有效样本数，最大为 FFT_SIZE */
+    uint32_t              samples_since_update;                      /**< 距离上轮分析新增的样本数 */
+    uint64_t              analysis_timestamp_us;                     /**< 当前分析窗最后一个样本的时间戳 */
+    uint8_t               initialized;                               /**< FFT 实例与窗口已初始化 */
+    uint8_t               tracking_valid[ADAPTIVE_NOTCH_AXIS_COUNT]; /**< 三轴最近一次跟踪是否可信 */
+    uint8_t               analysis_pending;                          /**< 已锁定分析窗，等待完成三个轴 */
+    uint8_t               next_analysis_axis;                        /**< 下一次要处理的轴：0=X、1=Y、2=Z */
+    uint8_t               analysis_changed_mask;                     /**< 本轮中心频率发生变化的轴位图 */
 } AdaptiveNotchTracker_t;
 
 /**

@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/7/12.
-//
+/** @file bsp_usb.c @brief USB CDC 环形缓冲、DMA 缓冲与回调路由实现。 */
 
 #include "bsp_usb.h"
 #include "bsp_memory_section.h"
@@ -349,5 +347,4 @@ void USB_CDC_TxCpltHook(void)
 
         portYIELD_FROM_ISR(higher_priority_task_woken);
     }
-
 }

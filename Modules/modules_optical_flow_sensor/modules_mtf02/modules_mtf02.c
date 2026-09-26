@@ -34,7 +34,7 @@ static void     MTF02_ResetMspParser(uint8_t current_byte);
 static void     MTF02_ResetStreamParsers(void);
 static void     MTF02_AcceptMicoLinkFrame(const uint8_t *frame, uint64_t timestamp_us);
 static void     MTF02_AcceptMspFrame(uint16_t command, const uint8_t *payload, uint16_t payload_size,
-                                    uint64_t timestamp_us);
+                                     uint64_t timestamp_us);
 static void     MTF02_ConsumeMicoLinkByte(uint8_t byte, uint64_t timestamp_us);
 static void     MTF02_ConsumeMspByte(uint8_t byte, uint64_t timestamp_us);
 static void     MTF02_DrainRxChunks(void);
@@ -183,8 +183,7 @@ static void MTF02_AcceptMicoLinkFrame(const uint8_t *frame, uint64_t timestamp_u
     SeqLock_WriteEnd(&mtf02_instance.data_lock);
 }
 
-static void MTF02_AcceptMspFrame(uint16_t command, const uint8_t *payload, uint16_t payload_size,
-                                uint64_t timestamp_us)
+static void MTF02_AcceptMspFrame(uint16_t command, const uint8_t *payload, uint16_t payload_size, uint64_t timestamp_us)
 {
     if ((command == MTF02_MSP2_SENSOR_RANGEFINDER) && (payload_size == MTF02_MSP_RANGE_PAYLOAD_LEN))
     {
@@ -425,8 +424,7 @@ static void MTF02_DrainRxChunks(void)
 
     for (uint32_t chunk_index = 0U; chunk_index < available; chunk_index++)
     {
-        MTF02_RxChunk_t *chunk =
-            &mtf02_instance.rx_chunk_queue[read_count & (MTF02_RX_CHUNK_QUEUE_DEPTH - 1U)];
+        MTF02_RxChunk_t *chunk = &mtf02_instance.rx_chunk_queue[read_count & (MTF02_RX_CHUNK_QUEUE_DEPTH - 1U)];
 
         __DMB();
 
@@ -498,8 +496,7 @@ static void MTF02_UART_EventCallback(USARTInstance *ins, USART_Event_e event, ui
             return;
         }
 
-        MTF02_RxChunk_t *chunk =
-            &mtf02_instance.rx_chunk_queue[write_count & (MTF02_RX_CHUNK_QUEUE_DEPTH - 1U)];
+        MTF02_RxChunk_t *chunk = &mtf02_instance.rx_chunk_queue[write_count & (MTF02_RX_CHUNK_QUEUE_DEPTH - 1U)];
 
         memcpy(chunk->data, data_ptr, data_len);
         chunk->length       = data_len;

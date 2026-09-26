@@ -24,7 +24,8 @@ static SemaphoreHandle_t mavlink_tx_mutex;
  */
 bool Mavlink_TxTransactionBegin(void)
 {
-    if (mavlink_tx_mutex == NULL) return false;
+    if (mavlink_tx_mutex == NULL)
+        return false;
     const BaseType_t taken = xSemaphoreTakeRecursive(mavlink_tx_mutex, portMAX_DELAY);
     return taken == pdTRUE;
 }

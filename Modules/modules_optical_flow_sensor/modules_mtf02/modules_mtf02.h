@@ -46,12 +46,11 @@
  * 上电初始化阶段调度器尚未运行，MTF-02 已可能连续送来约 25 个 DMA 数据块。
  * 32 槽能够覆盖该启动积压，同时仍保持 2 的幂，便于环形索引使用位掩码。
  */
-#define MTF02_RX_CHUNK_QUEUE_DEPTH     32U
-#define MTF02_SEQLOCK_MAX_RETRY        3U
+#define MTF02_RX_CHUNK_QUEUE_DEPTH 32U
+#define MTF02_SEQLOCK_MAX_RETRY    3U
 
 /* 环形槽池使用位掩码取下标，深度必须为 2 的幂。 */
-#if ((MTF02_RX_CHUNK_QUEUE_DEPTH == 0U) || \
-     ((MTF02_RX_CHUNK_QUEUE_DEPTH & (MTF02_RX_CHUNK_QUEUE_DEPTH - 1U)) != 0U))
+#if ((MTF02_RX_CHUNK_QUEUE_DEPTH == 0U) || ((MTF02_RX_CHUNK_QUEUE_DEPTH & (MTF02_RX_CHUNK_QUEUE_DEPTH - 1U)) != 0U))
 #error "MTF02_RX_CHUNK_QUEUE_DEPTH must be a power of two"
 #endif
 

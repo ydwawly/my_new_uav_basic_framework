@@ -40,15 +40,15 @@
  *   HIL 模式：ESKF 即唯一估计器，必然存在；
  *   真实模式：仅当并行 ESKF 使能时才存在。
  * 该实例为静态常驻对象，放入 DTCM（零等待、32B 对齐）。 */
-#if ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_HIL) || \
+#if ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_HIL) ||                                                               \
      ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_REAL) && (ATTITUDE_PARALLEL_ESKF_ENABLE == 1U)))
 static NavESKF nav_eskf_instance APP_ATTITUDE_MEMORY_ATTRIBUTE;
 #endif
 
 /* 任务控制块、栈（静态分配，单位 word）、句柄，全部放 DTCM */
 static StaticTask_t attitude_task_tcb APP_ATTITUDE_MEMORY_ATTRIBUTE;
-static StackType_t  attitude_task_stack[ATTITUDE_TASK_STACK_WORDS] APP_ATTITUDE_MEMORY_ATTRIBUTE;
-static TaskHandle_t attitude_task_handle;
+static StackType_t                    attitude_task_stack[ATTITUDE_TASK_STACK_WORDS] APP_ATTITUDE_MEMORY_ATTRIBUTE;
+static TaskHandle_t                   attitude_task_handle;
 
 /* 姿态任务运行时状态（滤波器状态、VQF 输出缓存、对准计数、时间戳等），放 DTCM */
 static AppAttitudeRuntime_t attitude_runtime APP_ATTITUDE_MEMORY_ATTRIBUTE;
@@ -74,23 +74,25 @@ static bool Attitude_InitImuFilters(void)
         PT1_Filter_Init(&attitude_runtime.accel_lpf[axis], ATTITUDE_ACCEL_LPF_CUTOFF_HZ);
 #if ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_REAL) && (ATTITUDE_IMU_NOTCH_ENABLE == 1U))
         /* 双二阶陷波：初始中心频率 115Hz、Q=3，陀螺/加速度各轴一个 */
-        Biquad_Notch_Init(&attitude_runtime.gyro_notch[axis], sample_rate_hz, ATTITUDE_IMU_NOTCH_CENTER_HZ, ATTITUDE_IMU_NOTCH_Q);
-        Biquad_Notch_Init(&attitude_runtime.accel_notch[axis], sample_rate_hz, ATTITUDE_IMU_NOTCH_CENTER_HZ, ATTITUDE_IMU_NOTCH_Q);
+        Biquad_Notch_Init(&attitude_runtime.gyro_notch[axis], sample_rate_hz, ATTITUDE_IMU_NOTCH_CENTER_HZ,
+                          ATTITUDE_IMU_NOTCH_Q);
+        Biquad_Notch_Init(&attitude_runtime.accel_notch[axis], sample_rate_hz, ATTITUDE_IMU_NOTCH_CENTER_HZ,
+                          ATTITUDE_IMU_NOTCH_Q);
 #endif
     }
 
-#if ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_REAL) && (ATTITUDE_IMU_NOTCH_ENABLE == 1U) && \
+#if ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_REAL) && (ATTITUDE_IMU_NOTCH_ENABLE == 1U) &&                         \
      (ATTITUDE_IMU_ADAPTIVE_NOTCH_ENABLE == 1U))
     /* 用 config 里的参数组装自适应陷波配置（频带、RMS/SNR 门限、限速、估计窗长） */
     const AdaptiveNotchConfig_t config = {
-        .sample_rate_hz = sample_rate_hz,
-        .initial_center_hz = ATTITUDE_IMU_NOTCH_CENTER_HZ,
-        .minimum_hz = ATTITUDE_IMU_NOTCH_MIN_HZ,
-        .maximum_hz = ATTITUDE_IMU_NOTCH_MAX_HZ,
-        .minimum_rms = ATTITUDE_IMU_NOTCH_MIN_GYRO_RMS_RPS,
-        .minimum_snr = ATTITUDE_IMU_NOTCH_MIN_SNR,
+        .sample_rate_hz        = sample_rate_hz,
+        .initial_center_hz     = ATTITUDE_IMU_NOTCH_CENTER_HZ,
+        .minimum_hz            = ATTITUDE_IMU_NOTCH_MIN_HZ,
+        .maximum_hz            = ATTITUDE_IMU_NOTCH_MAX_HZ,
+        .minimum_rms           = ATTITUDE_IMU_NOTCH_MIN_GYRO_RMS_RPS,
+        .minimum_snr           = ATTITUDE_IMU_NOTCH_MIN_SNR,
         .maximum_slew_hz_per_s = ATTITUDE_IMU_NOTCH_MAX_SLEW_HZ_PER_S,
-        .update_samples = ATTITUDE_IMU_NOTCH_UPDATE_SAMPLES,
+        .update_samples        = ATTITUDE_IMU_NOTCH_UPDATE_SAMPLES,
     };
     if (!App_ImuFft_Init(&config))
     {
@@ -119,9 +121,9 @@ static void Attitude_QuaternionToEuler(NavQuatf quaternion, float euler_rad[3])
     const float siny_cosp = 2.0f * (q.w * q.z + q.x * q.y);
     const float cosy_cosp = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
 
-    euler_rad[0] = atan2f(sinr_cosp, cosr_cosp);                 /* roll  */
-    euler_rad[1] = asinf(Math_ClampFloat(sinp, -1.0f, 1.0f));    /* pitch */
-    euler_rad[2] = atan2f(siny_cosp, cosy_cosp);                 /* yaw   */
+    euler_rad[0] = atan2f(sinr_cosp, cosr_cosp);              /* roll  */
+    euler_rad[1] = asinf(Math_ClampFloat(sinp, -1.0f, 1.0f)); /* pitch */
+    euler_rad[2] = atan2f(siny_cosp, cosy_cosp);              /* yaw   */
 }
 
 /* ============================== 估计器初始化 ============================== */
@@ -137,12 +139,12 @@ static void Attitude_InitHilEstimator(const NavESKFState *initial_state)
     NAV_ESKF_GetDefaultConfig(&config);
 
     /* 连续噪声密度离散化：单步过程噪声 = 噪声密度 × sqrt(dt)（随机游走的离散化形式） */
-    config.gyro_noise = ATTITUDE_HIL_GYRO_SAMPLE_STD_RPS * sqrtf(ATTITUDE_IMU_NOMINAL_DT_S);
+    config.gyro_noise  = ATTITUDE_HIL_GYRO_SAMPLE_STD_RPS * sqrtf(ATTITUDE_IMU_NOMINAL_DT_S);
     config.accel_noise = ATTITUDE_HIL_ACCEL_SAMPLE_STD_MPS2 * sqrtf(ATTITUDE_IMU_NOMINAL_DT_S);
     /* 仿真 IMU 不建模零偏漂移，随机游走置 0 */
-    config.gyro_bias_rw = 0.0f;
-    config.accel_bias_rw = 0.0f;
-    config.chi_square_level = NAV_ESKF_CHI2_99;   /* 卡方野值拒绝门限取 99% */
+    config.gyro_bias_rw     = 0.0f;
+    config.accel_bias_rw    = 0.0f;
+    config.chi_square_level = NAV_ESKF_CHI2_99; /* 卡方野值拒绝门限取 99% */
 
     NAV_ESKF_Init(&nav_eskf_instance, &config, initial_state);
     attitude_runtime.estimator_initialized = 1U;
@@ -169,10 +171,10 @@ static void Attitude_InitParallelEskf(void)
 
     /* 真实器件噪声/零偏随机游走参数 */
     NAV_ESKF_GetDefaultConfig(&config);
-    config.gyro_noise = ATTITUDE_REAL_GYRO_NOISE;
-    config.accel_noise = ATTITUDE_REAL_ACCEL_NOISE;
-    config.gyro_bias_rw = ATTITUDE_REAL_GYRO_BIAS_RW;
-    config.accel_bias_rw = ATTITUDE_REAL_ACCEL_BIAS_RW;
+    config.gyro_noise       = ATTITUDE_REAL_GYRO_NOISE;
+    config.accel_noise      = ATTITUDE_REAL_ACCEL_NOISE;
+    config.gyro_bias_rw     = ATTITUDE_REAL_GYRO_BIAS_RW;
+    config.accel_bias_rw    = ATTITUDE_REAL_ACCEL_BIAS_RW;
     config.chi_square_level = NAV_ESKF_CHI2_99;
 
     memset(&initial_state, 0, sizeof(initial_state));
@@ -214,7 +216,8 @@ static bool Attitude_TryInitialize(const float gyro_rps[3], const float accel_mp
     }
 #else
     /* 真实模式静态对准期间持续运行 VQF，使其内部滤波状态稳定；VQF 未就绪则继续等 */
-    if (!VqfC_Update(gyro_rps, accel_mps2, &attitude_runtime.vqf_output)) return false;
+    if (!VqfC_Update(gyro_rps, accel_mps2, &attitude_runtime.vqf_output))
+        return false;
 #endif
 
     /* 静止判据：加速度模长接近 1g、陀螺模长足够小，且都为有限数 */
@@ -242,7 +245,8 @@ static bool Attitude_TryInitialize(const float gyro_rps[3], const float accel_mp
 #endif
 
     /* 连续静止样本数不足，继续累计（真实模式约 2000 样本≈2s） */
-    if (++attitude_runtime.alignment_sample_count < ATTITUDE_ALIGNMENT_SAMPLES) return false;
+    if (++attitude_runtime.alignment_sample_count < ATTITUDE_ALIGNMENT_SAMPLES)
+        return false;
 
 #if (APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_HIL)
     /* ---- HIL 静态对准：用区间平均加速度求初始 roll/pitch，平均陀螺作零偏 ---- */
@@ -255,11 +259,12 @@ static bool Attitude_TryInitialize(const float gyro_rps[3], const float accel_mp
     }
 
     const float norm = Math_VectorNorm3(accel_average);
-    if ((!isfinite(norm)) || (norm < 1.0e-6f)) return false;   /* 平均加速度几乎为 0，无法定姿态 */
+    if ((!isfinite(norm)) || (norm < 1.0e-6f))
+        return false; /* 平均加速度几乎为 0，无法定姿态 */
 
     /* 由重力方向反解水平姿态（机体坐标下重力指向决定 roll/pitch） */
-    const float pitch = asinf(Math_ClampFloat(accel_average[0] / norm, -1.0f, 1.0f));
-    const float roll  = atan2f(-accel_average[1], -accel_average[2]);
+    const float pitch  = asinf(Math_ClampFloat(accel_average[0] / norm, -1.0f, 1.0f));
+    const float roll   = atan2f(-accel_average[1], -accel_average[2]);
     initial_state.q_nb = Math_QuaternionFromEuler(roll, pitch, 0.0f);
     memcpy(initial_state.gyro_bias_rps, gyro_average, sizeof(initial_state.gyro_bias_rps));
 
@@ -267,7 +272,8 @@ static bool Attitude_TryInitialize(const float gyro_rps[3], const float accel_mp
     RTTINFO("[Attitude] HIL static alignment completed.");
 #else
     /* ---- 真实对准完成：VQF 锁定零航向，再用其姿态初始化并行 ESKF ---- */
-    if (!VqfC_ZeroHeading()) return false;
+    if (!VqfC_ZeroHeading())
+        return false;
 #if (ATTITUDE_PARALLEL_ESKF_ENABLE == 1U)
     Attitude_InitParallelEskf();
 #endif
@@ -303,27 +309,32 @@ static void Attitude_ResetEstimator(void)
  */
 static void Attitude_PublishControl(uint64_t timestamp_us, const float gyro_rps[3], float dt_s)
 {
-    Control_Feedback_t feedback = {0};                 /* 先整体清零，避免未赋值字段带垃圾 */
-    feedback.timestamp_us = timestamp_us;
+    Control_Feedback_t feedback             = {0}; /* 先整体清零，避免未赋值字段带垃圾 */
+    feedback.timestamp_us                   = timestamp_us;
     feedback.last_range_fusion_timestamp_us = attitude_runtime.last_range_fusion_timestamp_us;
-    feedback.dt_s = dt_s;
+    feedback.dt_s                           = dt_s;
 
 #if (APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_HIL)
     /* ---------- HIL：ESKF 是唯一估计器，姿态/零偏/位置速度全取 ESKF ---------- */
     NavESKFState state;
     NAV_ESKF_GetState(&nav_eskf_instance, &state);
     const NavQuatf q = state.q_nb;
-    float euler_rad[3];
+    float          euler_rad[3];
     Attitude_QuaternionToEuler(q, euler_rad);
 
-    feedback.q_nb[0] = q.w; feedback.q_nb[1] = q.x; feedback.q_nb[2] = q.y; feedback.q_nb[3] = q.z;
+    feedback.q_nb[0] = q.w;
+    feedback.q_nb[1] = q.x;
+    feedback.q_nb[2] = q.y;
+    feedback.q_nb[3] = q.z;
     feedback.yaw_rad = euler_rad[2];
     /* 输出“扣除零偏后”的角速度给控制 */
-    for (uint8_t i = 0U; i < 3U; i++) feedback.gyro_rps[i] = gyro_rps[i] - state.gyro_bias_rps[i];
+    for (uint8_t i = 0U; i < 3U; i++)
+        feedback.gyro_rps[i] = gyro_rps[i] - state.gyro_bias_rps[i];
     memcpy(feedback.pos_ned_m, state.pos_ned_m, sizeof(feedback.pos_ned_m));
     memcpy(feedback.vel_ned_mps, state.vel_ned_mps, sizeof(feedback.vel_ned_mps));
     /* ESKF 预测有效才置导航有效标志 */
-    if (attitude_runtime.eskf_predict_valid != 0U) feedback.navigation_flags |= CONTROL_NAVIGATION_ESKF_VALID;
+    if (attitude_runtime.eskf_predict_valid != 0U)
+        feedback.navigation_flags |= CONTROL_NAVIGATION_ESKF_VALID;
 #else
     /* ---------- 真实：姿态四元数/零偏来自 VQF（控制源） ---------- */
     const NavQuatf q = {
@@ -335,10 +346,14 @@ static void Attitude_PublishControl(uint64_t timestamp_us, const float gyro_rps[
     float euler_rad[3];
     Attitude_QuaternionToEuler(q, euler_rad);
 
-    feedback.q_nb[0] = q.w; feedback.q_nb[1] = q.x; feedback.q_nb[2] = q.y; feedback.q_nb[3] = q.z;
+    feedback.q_nb[0] = q.w;
+    feedback.q_nb[1] = q.x;
+    feedback.q_nb[2] = q.y;
+    feedback.q_nb[3] = q.z;
     feedback.yaw_rad = euler_rad[2];
     /* 控制用角速度 = 滤波陀螺 - VQF 估计零偏 */
-    for (uint8_t i = 0U; i < 3U; i++) feedback.gyro_rps[i] = gyro_rps[i] - attitude_runtime.vqf_output.gyro_bias_rps[i];
+    for (uint8_t i = 0U; i < 3U; i++)
+        feedback.gyro_rps[i] = gyro_rps[i] - attitude_runtime.vqf_output.gyro_bias_rps[i];
 
 #if (ATTITUDE_PARALLEL_ESKF_ENABLE == 1U)
     /* 并行 ESKF 只补充位置/速度导航量：预测有效 + 数值有限才拷贝并置有效标志 */
@@ -354,7 +369,8 @@ static void Attitude_PublishControl(uint64_t timestamp_us, const float gyro_rps[
         }
     }
     /* 曾经成功融合过测距，置“测距已融合”标志，供定高通道判断 */
-    if (attitude_runtime.last_range_fusion_timestamp_us != 0ULL) feedback.navigation_flags |= CONTROL_NAVIGATION_RANGE_FUSED;
+    if (attitude_runtime.last_range_fusion_timestamp_us != 0ULL)
+        feedback.navigation_flags |= CONTROL_NAVIGATION_RANGE_FUSED;
 #endif
 #endif
 
@@ -372,7 +388,8 @@ static void Attitude_PublishControl(uint64_t timestamp_us, const float gyro_rps[
  */
 static bool APP_ATTITUDE_HOT_CODE Attitude_WaitForImuSample(AppAttitudeImuSample_t *sample, HIL_Sensor_Data_t *sensor)
 {
-    if ((sample == NULL) || (sensor == NULL) || (!App_Attitude_Hil_WaitForSensor(sensor))) return false;
+    if ((sample == NULL) || (sensor == NULL) || (!App_Attitude_Hil_WaitForSensor(sensor)))
+        return false;
 
     /* 仿真端请求复位：清估计器，本轮不产出样本 */
     if ((sensor->fields_updated & HIL_SENSOR_UPDATED_RESET) != 0U)
@@ -381,11 +398,12 @@ static bool APP_ATTITUDE_HOT_CODE Attitude_WaitForImuSample(AppAttitudeImuSample
         return false;
     }
     /* 陀螺/加速度字段必须都更新过，才算一帧完整 IMU */
-    if (!App_Attitude_Hil_HasCompleteImu(sensor->fields_updated)) return false;
+    if (!App_Attitude_Hil_HasCompleteImu(sensor->fields_updated))
+        return false;
 
     /* 时间戳优先用仿真时间戳，缺失时退回本机接收时间戳 */
     sample->timestamp_us = (sensor->timestamp_us != 0ULL) ? sensor->timestamp_us : sensor->rx_timestamp_us;
-    memcpy(sample->gyro_rps, sensor->accel, sizeof(sample->gyro_rps));   /* 注：参数名 gyro，拷陀螺 */
+    memcpy(sample->gyro_rps, sensor->accel, sizeof(sample->gyro_rps)); /* 注：参数名 gyro，拷陀螺 */
     memcpy(sample->accel_mps2, sensor->accel, sizeof(sample->accel_mps2));
     return true;
 }
@@ -400,11 +418,13 @@ static bool APP_ATTITUDE_HOT_CODE Attitude_WaitForImuSample(AppAttitudeImuSample
 {
     BMI088_Data_t imu;
     /* pdTRUE：每次取走通知值并清零；portMAX_DELAY：无限等待，不轮询、不耗 CPU */
-    if ((sample == NULL) || (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) == 0U)) return false;
+    if ((sample == NULL) || (ulTaskNotifyTake(pdTRUE, portMAX_DELAY) == 0U))
+        return false;
     /* 从双缓冲“已写完那块”解析出最新 IMU（内部 1 次结构体拷贝） */
-    if (BMI088_GetData(&imu) == 0U) return false;
+    if (BMI088_GetData(&imu) == 0U)
+        return false;
 
-    sample->timestamp_us = imu.Bim088_Timestamp;   /* DRDY 时刻锁存的 64µs 时间戳 */
+    sample->timestamp_us = imu.Bim088_Timestamp; /* DRDY 时刻锁存的 64µs 时间戳 */
     memcpy(sample->gyro_rps, imu.gyro, sizeof(sample->gyro_rps));
     memcpy(sample->accel_mps2, imu.accel, sizeof(sample->accel_mps2));
     return true;
@@ -420,17 +440,22 @@ static void APP_ATTITUDE_HOT_CODE Attitude_FilterImuSample(AppAttitudeImuSample_
 {
     /* dt 默认用标称 1ms；若能从相邻时间戳算出合法实测 dt，则用实测值（PT1 系数依赖 dt） */
     float dt_s = ATTITUDE_IMU_NOMINAL_DT_S;
-    if ((sample == NULL) || (sample->timestamp_us == 0ULL)) return;
+    if ((sample == NULL) || (sample->timestamp_us == 0ULL))
+        return;
 
-    if ((attitude_runtime.previous_filter_timestamp_us != 0ULL) && (sample->timestamp_us > attitude_runtime.previous_filter_timestamp_us))
+    if ((attitude_runtime.previous_filter_timestamp_us != 0ULL) &&
+        (sample->timestamp_us > attitude_runtime.previous_filter_timestamp_us))
     {
-        const float measured_dt_s = (float)(sample->timestamp_us - attitude_runtime.previous_filter_timestamp_us) * 1.0e-6f;
+        const float measured_dt_s = (float)(sample->timestamp_us - attitude_runtime.previous_filter_timestamp_us) *
+                                    1.0e-6f;
         /* 实测 dt 必须有限且落在 [0.2ms,10ms] 窗口内才采用，否则沿用标称值 */
-        if (isfinite(measured_dt_s) && (measured_dt_s >= ATTITUDE_IMU_MIN_DT_S) && (measured_dt_s <= ATTITUDE_IMU_MAX_DT_S)) dt_s = measured_dt_s;
+        if (isfinite(measured_dt_s) && (measured_dt_s >= ATTITUDE_IMU_MIN_DT_S) &&
+            (measured_dt_s <= ATTITUDE_IMU_MAX_DT_S))
+            dt_s = measured_dt_s;
     }
     attitude_runtime.previous_filter_timestamp_us = sample->timestamp_us;
 
-#if ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_REAL) && (ATTITUDE_IMU_NOTCH_ENABLE == 1U) && \
+#if ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_REAL) && (ATTITUDE_IMU_NOTCH_ENABLE == 1U) &&                         \
      (ATTITUDE_IMU_ADAPTIVE_NOTCH_ENABLE == 1U))
     AppImuFftResult_t fft_result;
     if (App_ImuFft_TryGetResult(&fft_result) && (fft_result.notch.center_changed_mask != 0U))
@@ -456,8 +481,8 @@ static void APP_ATTITUDE_HOT_CODE Attitude_FilterImuSample(AppAttitudeImuSample_
     for (uint8_t axis = 0U; axis < 3U; axis++)
     {
 #if ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_REAL) && (ATTITUDE_IMU_NOTCH_ENABLE == 1U))
-        sample->gyro_rps[axis]    = Biquad_Notch_Apply(&attitude_runtime.gyro_notch[axis], sample->gyro_rps[axis]);
-        sample->accel_mps2[axis]  = Biquad_Notch_Apply(&attitude_runtime.accel_notch[axis], sample->accel_mps2[axis]);
+        sample->gyro_rps[axis]   = Biquad_Notch_Apply(&attitude_runtime.gyro_notch[axis], sample->gyro_rps[axis]);
+        sample->accel_mps2[axis] = Biquad_Notch_Apply(&attitude_runtime.accel_notch[axis], sample->accel_mps2[axis]);
 #endif
         sample->gyro_rps[axis]   = PT1_Filter_Apply(&attitude_runtime.gyro_lpf[axis], sample->gyro_rps[axis], dt_s);
         sample->accel_mps2[axis] = PT1_Filter_Apply(&attitude_runtime.accel_lpf[axis], sample->accel_mps2[axis], dt_s);
@@ -475,12 +500,14 @@ static bool APP_ATTITUDE_HOT_CODE Attitude_PreparePrediction(const AppAttitudeIm
 {
     /* 输入与有限性保护 */
     if ((sample == NULL) || (dt_s == NULL) || (sample->timestamp_us == 0ULL) ||
-        (!Math_Vector3IsFinite(sample->gyro_rps)) || (!Math_Vector3IsFinite(sample->accel_mps2))) return false;
+        (!Math_Vector3IsFinite(sample->gyro_rps)) || (!Math_Vector3IsFinite(sample->accel_mps2)))
+        return false;
 
     /* 估计器还没初始化：尝试静态对准，同时记录本帧时间戳，返回 false（本轮不预测） */
     if (attitude_runtime.estimator_initialized == 0U)
     {
-        if (Attitude_TryInitialize(sample->gyro_rps, sample->accel_mps2)) attitude_runtime.previous_imu_timestamp_us = sample->timestamp_us;
+        if (Attitude_TryInitialize(sample->gyro_rps, sample->accel_mps2))
+            attitude_runtime.previous_imu_timestamp_us = sample->timestamp_us;
         return false;
     }
 
@@ -507,25 +534,27 @@ static bool APP_ATTITUDE_HOT_CODE Attitude_RunPrediction(const AppAttitudeImuSam
 {
 #if (APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_HIL)
     /* 过程噪声随实际 dt 缩放：sqrt(dt) 离散化，保证不同步长下噪声强度一致 */
-    const float sqrt_dt = sqrtf(dt_s);
+    const float sqrt_dt               = sqrtf(dt_s);
     nav_eskf_instance.cfg.gyro_noise  = ATTITUDE_HIL_GYRO_SAMPLE_STD_RPS * sqrt_dt;
     nav_eskf_instance.cfg.accel_noise = ATTITUDE_HIL_ACCEL_SAMPLE_STD_MPS2 * sqrt_dt;
 
     const NavImuSample prediction = {
-        .gyro_rps    = {sample->gyro_rps[0], sample->gyro_rps[1], sample->gyro_rps[2]},
-        .accel_mps2  = {sample->accel_mps2[0], sample->accel_mps2[1], sample->accel_mps2[2]},
-        .dt_s        = dt_s,
+        .gyro_rps   = {sample->gyro_rps[0], sample->gyro_rps[1], sample->gyro_rps[2]},
+        .accel_mps2 = {sample->accel_mps2[0], sample->accel_mps2[1], sample->accel_mps2[2]},
+        .dt_s       = dt_s,
     };
 
     /* ESKF 一步预测（状态传播 + 协方差传播） */
     attitude_runtime.eskf_predict_valid = NAV_ESKF_Predict(&nav_eskf_instance, &prediction) ? 1U : 0U;
-    if (attitude_runtime.eskf_predict_valid == 0U) return false;
+    if (attitude_runtime.eskf_predict_valid == 0U)
+        return false;
     /* 重力/参考向量更新（为后续加速度观测做准备） */
     (void)NAV_ESKF_UpdateGravity(&nav_eskf_instance, &prediction);
     return true;
 #else
     /* 真实模式：VQF 每帧更新，是控制姿态的权威来源；失败则本轮不继续 */
-    if (!VqfC_Update(sample->gyro_rps, sample->accel_mps2, &attitude_runtime.vqf_output)) return false;
+    if (!VqfC_Update(sample->gyro_rps, sample->accel_mps2, &attitude_runtime.vqf_output))
+        return false;
 
     attitude_runtime.eskf_predict_valid = 0U;
 #if (ATTITUDE_PARALLEL_ESKF_ENABLE == 1U)
@@ -538,12 +567,13 @@ static bool APP_ATTITUDE_HOT_CODE Attitude_RunPrediction(const AppAttitudeImuSam
             .dt_s       = dt_s,
         };
 
-        const bool valid = NAV_ESKF_Predict(&nav_eskf_instance, &prediction);
+        const bool valid                    = NAV_ESKF_Predict(&nav_eskf_instance, &prediction);
         attitude_runtime.eskf_predict_valid = valid ? 1U : 0U;
-        if (valid) (void)NAV_ESKF_UpdateGravity(&nav_eskf_instance, &prediction);
+        if (valid)
+            (void)NAV_ESKF_UpdateGravity(&nav_eskf_instance, &prediction);
     }
 #endif
-    return true;   /* VQF 成功即视为本轮预测成功 */
+    return true; /* VQF 成功即视为本轮预测成功 */
 #endif
 }
 
@@ -557,7 +587,7 @@ static void APP_ATTITUDE_HOT_CODE App_Attitude_Task(void *argument)
 {
     AppAttitudeImuSample_t sample = {0};
     float                  dt_s;
-    (void)argument;   /* 不使用任务入参 */
+    (void)argument; /* 不使用任务入参 */
 
 #if (APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_HIL)
     HIL_Sensor_Data_t sensor = {0};
@@ -570,17 +600,18 @@ static void APP_ATTITUDE_HOT_CODE App_Attitude_Task(void *argument)
     {
         /* 1) 阻塞等待并取出一帧 IMU（真实：任务通知；HIL：仿真数据） */
 #if (APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_HIL)
-        if (!Attitude_WaitForImuSample(&sample, &sensor)) continue;
+        if (!Attitude_WaitForImuSample(&sample, &sensor))
+            continue;
 #else
-        if (!Attitude_WaitForImuSample(&sample)) continue;
+        if (!Attitude_WaitForImuSample(&sample))
+            continue;
 #endif
 
         /* 2) 数字滤波（消费自适应频率 + 固定陷波 + PT1）；FFT 本体在 SensorHub 分轴执行。 */
         Attitude_FilterImuSample(&sample);
 
         /* 3)+4) 预测前准备与一步预测；任一不满足则本轮结束等下一帧 */
-        const bool predict_valid = Attitude_PreparePrediction(&sample, &dt_s) &&
-                                   Attitude_RunPrediction(&sample, dt_s);
+        const bool predict_valid = Attitude_PreparePrediction(&sample, &dt_s) && Attitude_RunPrediction(&sample, dt_s);
         if (!predict_valid)
         {
             continue;
@@ -651,10 +682,12 @@ static bool Attitude_CreateTask(void)
  */
 bool App_Attitude_Init(void)
 {
-    if (attitude_task_handle != NULL) return true;   /* 防重复初始化 */
+    if (attitude_task_handle != NULL)
+        return true; /* 防重复初始化 */
 
     memset(&attitude_runtime, 0, sizeof(attitude_runtime));
-    if (!Attitude_InitImuFilters()) return false;
+    if (!Attitude_InitImuFilters())
+        return false;
 
 #if (APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_REAL)
     /* 真实模式先初始化 VQF（标称 1kHz 采样率） */
@@ -665,7 +698,8 @@ bool App_Attitude_Init(void)
     }
 #endif
 
-    if ((!Attitude_RegisterSource()) || (!Attitude_CreateTask())) return false;
+    if ((!Attitude_RegisterSource()) || (!Attitude_CreateTask()))
+        return false;
 
     RTTINFO("[Attitude] Init success.");
     return true;

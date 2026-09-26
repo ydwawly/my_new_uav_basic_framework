@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/18.
-//
+/** @file modules_TFmini_Plus.h @brief TFmini Plus 激光测距传感器接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_TFMINI_PLUS_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_TFMINI_PLUS_H

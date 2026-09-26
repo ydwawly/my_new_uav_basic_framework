@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/14.
-//
+/** @file modules_BMI088.c @brief BMI088 初始化、DMA 采样与校准实现。 */
 
 #include "modules_BMI088.h"
 #include "bmi088_fixed_calibration_generated.h"

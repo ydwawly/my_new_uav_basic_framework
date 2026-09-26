@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/18.
-//
+/** @file modules_Microvoid_MG.c @brief 微空 MG GPS UART 协议解析实现。 */
 
 #include "modules_Microvoid_MG.h"
 #include <string.h>

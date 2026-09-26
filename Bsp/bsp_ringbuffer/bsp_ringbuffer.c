@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/9.
-//
+/** @file bsp_ringbuffer.c @brief 固定容量字节环形缓冲实现。 */
 
 #include "bsp_ringbuffer.h"
 #include <string.h>

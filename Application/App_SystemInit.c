@@ -92,7 +92,9 @@ static void App_InitializeMotorOutput(void)
     {
         app_system_status.control_task_started = (xTaskCreateStatic(Control_Task, "control", CONTROL_TASK_STACK_WORDS,
                                                                     NULL, APP_TASK_PRIORITY_CONTROL, control_task_stack,
-                                                                    &control_task_control) != NULL) ? 1U: 0U;
+                                                                    &control_task_control) != NULL)
+                                                     ? 1U
+                                                     : 0U;
     }
 #endif
 }
@@ -152,7 +154,7 @@ bool App_SystemInit(void)
     SEGGER_SYSVIEW_Start();
 #endif
 
-    const bool required_ready = App_RequiredModulesAreReady();
+    const bool required_ready            = App_RequiredModulesAreReady();
     app_system_status.all_required_ready = required_ready ? 1U : 0U;
     App_ReportInitializationResult(required_ready);
     return required_ready;

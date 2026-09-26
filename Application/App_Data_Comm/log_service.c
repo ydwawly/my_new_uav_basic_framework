@@ -19,16 +19,16 @@
 /* 单次调度最多回传 4 条日志响应，避免日志下载长时间占用通信任务。 */
 #define LOG_SERVICE_MAX_RESPONSES_PER_UPDATE 4U
 /* 控制日志最小记录间隔为 5000 us，即最高 200 Hz。 */
-#define LOG_SERVICE_FLIGHT_INTERVAL_US       5000ULL
+#define LOG_SERVICE_FLIGHT_INTERVAL_US 5000ULL
 
 /* control_log 主题订阅者：读取控制任务发布的最新一份控制快照。 */
 static Subscriber_t *control_log_subscriber;
 /* 上一次执行日志采样的调度时间，用于限制SD日志记录频率。 */
-static uint64_t      last_flight_log_us;
+static uint64_t last_flight_log_us;
 /* 上一次已经处理的控制样本序号，用于避免重复记录同一份快照。 */
-static uint32_t      last_flight_sample_sequence;
+static uint32_t last_flight_sample_sequence;
 /* 标记是否已经接收过样本，避免初始 sequence=0 被误判为重复数据。 */
-static uint8_t       flight_sample_seen;
+static uint8_t flight_sample_seen;
 
 /**
  * @brief 将精简后的 Control_Log_t 适配到既有 Flight Control V4 线格式。
@@ -53,21 +53,21 @@ static void LogService_BuildFlightPayload(const Control_Log_t *snapshot, SDCard_
     base->sample_sequence                 = snapshot->sequence;
 
     /* 新 Control_Log_t 不再提供控制周期和横滚/俯仰姿态目标，明确标记为无效值。 */
-    base->dt_s                            = NAN;
-    base->attitude_ref_rad[0]             = NAN;
-    base->attitude_ref_rad[1]             = NAN;
+    base->dt_s                = NAN;
+    base->attitude_ref_rad[0] = NAN;
+    base->attitude_ref_rad[1] = NAN;
 
     /* 依次填写 X/Y/Z 三个轴的控制量；估计器与 PID 分项缺失时使用 NaN。 */
     for (uint8_t axis = 0U; axis < 3U; axis++)
     {
         /* 姿态、位置、速度和加速度应由各自的专用日志记录，此处不伪造为 0。 */
-        base->euler_rad[axis]          = NAN;
-        base->pos_ned_m[axis]          = NAN;
-        base->vel_ned_mps[axis]        = NAN;
-        base->gyro_rps[axis]           = snapshot->gyro_rps[axis];
-        base->accel_mps2[axis]         = NAN;
-        base->gyro_bias_rps[axis]      = NAN;
-        base->accel_bias_mps2[axis]    = NAN;
+        base->euler_rad[axis]       = NAN;
+        base->pos_ned_m[axis]       = NAN;
+        base->vel_ned_mps[axis]     = NAN;
+        base->gyro_rps[axis]        = snapshot->gyro_rps[axis];
+        base->accel_mps2[axis]      = NAN;
+        base->gyro_bias_rps[axis]   = NAN;
+        base->accel_bias_mps2[axis] = NAN;
 
         /* 角速度环分析所需的目标、测量、误差和总输出仍由控制日志提供。 */
         base->attitude_error_rad[axis] = snapshot->attitude_error_rad[axis];
@@ -178,7 +178,7 @@ static void LogService_RecordFlightData(uint64_t now_us)
 bool LogService_Init(void)
 {
     /* 注册时校验主题元素大小，防止发布者和订阅者使用不一致的 Control_Log_t 布局。 */
-    control_log_subscriber      = SubRegister(CONTROL_LOG_TOPIC_NAME, sizeof(Control_Log_t));
+    control_log_subscriber = SubRegister(CONTROL_LOG_TOPIC_NAME, sizeof(Control_Log_t));
 
     /* 清除上一次运行遗留的限频和去重状态，从下一份新快照重新开始记录。 */
     last_flight_log_us          = 0ULL;

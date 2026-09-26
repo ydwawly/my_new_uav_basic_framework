@@ -2,8 +2,8 @@
  * @file log_service.h
  * @brief SD 飞行日志生产与 MAVLink 日志下载服务
  */
-#ifndef MY_NEW_UAV_BASIC_FRAMEWORK_LOG_SERVICE_H
-#define MY_NEW_UAV_BASIC_FRAMEWORK_LOG_SERVICE_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_LOG_SERVICE_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_LOG_SERVICE_H
 
 #include <stdbool.h>
 #include <stdint.h>

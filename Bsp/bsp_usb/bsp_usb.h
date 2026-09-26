@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/20.
-//
+/** @file bsp_usb.h @brief USB CDC 异步发送与接收接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_USB_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_USB_H

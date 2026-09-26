@@ -43,7 +43,7 @@ typedef enum
 typedef struct
 {
     SPI_HandleTypeDef *handle;
-    SPIInstance *owner;
+    SPIInstance       *owner;
 } SPIBusContext_t;
 /* ============================== 静态资源 ============================== */
 /*
@@ -69,7 +69,8 @@ static SPIBusContext_t *SPI_FindBus(SPI_HandleTypeDef *handle)
 {
     for (uint8_t i = 0U; i < spi_bus_count; i++)
     {
-        if (spi_buses[i].handle == handle) return &spi_buses[i];
+        if (spi_buses[i].handle == handle)
+            return &spi_buses[i];
     }
 
     return NULL;
@@ -84,13 +85,15 @@ static SPIBusContext_t *SPI_FindOrAddBus(SPI_HandleTypeDef *handle)
 {
     SPIBusContext_t *bus = SPI_FindBus(handle);
 
-    if (bus != NULL) return bus;
-    if (spi_bus_count >= SPI_DEVICE_CNT) return NULL;
+    if (bus != NULL)
+        return bus;
+    if (spi_bus_count >= SPI_DEVICE_CNT)
+        return NULL;
 
     bus = &spi_buses[spi_bus_count++];
 
     bus->handle = handle;
-    bus->owner = NULL;
+    bus->owner  = NULL;
 
     return bus;
 }
@@ -126,7 +129,8 @@ static HAL_StatusTypeDef SPI_AcquireBus(SPIInstance *instance, SPIBusContext_t *
 {
     SPIBusContext_t *bus = SPI_FindBus(instance->spi_handle);
 
-    if ((bus == NULL) || (bus_out == NULL)) return HAL_ERROR;
+    if ((bus == NULL) || (bus_out == NULL))
+        return HAL_ERROR;
 
     /*
      * 保存进入函数前的中断状态。
@@ -144,16 +148,18 @@ static HAL_StatusTypeDef SPI_AcquireBus(SPIInstance *instance, SPIBusContext_t *
     if ((bus->owner != NULL) || (instance->is_busy != 0U))
     {
         __DMB();
-        if ((primask & 1U) == 0U) __enable_irq();
+        if ((primask & 1U) == 0U)
+            __enable_irq();
         return HAL_BUSY;
     }
 
-    bus->owner = instance;
+    bus->owner        = instance;
     instance->is_busy = 1U;
 
     __DMB();
 
-    if ((primask & 1U) == 0U) __enable_irq();
+    if ((primask & 1U) == 0U)
+        __enable_irq();
 
     *bus_out = bus;
 
@@ -174,7 +180,8 @@ static HAL_StatusTypeDef SPI_AcquireBus(SPIInstance *instance, SPIBusContext_t *
  */
 static void SPI_ReleaseBus(SPIBusContext_t *bus)
 {
-    if ((bus == NULL) || (bus->owner == NULL)) return;
+    if ((bus == NULL) || (bus->owner == NULL))
+        return;
 
     SPIInstance *owner = bus->owner;
 
@@ -185,7 +192,7 @@ static void SPI_ReleaseBus(SPIBusContext_t *bus)
     HAL_GPIO_WritePin(owner->GPIOx, owner->cs_pin, GPIO_PIN_SET);
 
     owner->is_busy = 0U;
-    bus->owner = NULL;
+    bus->owner     = NULL;
 
     __DMB();
 }
@@ -203,18 +210,17 @@ static HAL_StatusTypeDef SPI_RunBlocking(SPIInstance *instance, const uint8_t *t
 {
     switch (transfer)
     {
-        case SPI_TRANSFER_TX:
-            return HAL_SPI_Transmit(instance->spi_handle, (uint8_t *)tx_data, length, SPI_BLOCK_TIMEOUT);
+    case SPI_TRANSFER_TX:
+        return HAL_SPI_Transmit(instance->spi_handle, (uint8_t *)tx_data, length, SPI_BLOCK_TIMEOUT);
 
-        case SPI_TRANSFER_RX:
-            return HAL_SPI_Receive(instance->spi_handle, rx_data, length, SPI_BLOCK_TIMEOUT);
+    case SPI_TRANSFER_RX:
+        return HAL_SPI_Receive(instance->spi_handle, rx_data, length, SPI_BLOCK_TIMEOUT);
 
-        case SPI_TRANSFER_TX_RX:
-            return HAL_SPI_TransmitReceive(instance->spi_handle, (uint8_t *)tx_data, rx_data, length,
-                                           SPI_BLOCK_TIMEOUT);
+    case SPI_TRANSFER_TX_RX:
+        return HAL_SPI_TransmitReceive(instance->spi_handle, (uint8_t *)tx_data, rx_data, length, SPI_BLOCK_TIMEOUT);
 
-        default:
-            return HAL_ERROR;
+    default:
+        return HAL_ERROR;
     }
 }
 
@@ -230,35 +236,35 @@ static HAL_StatusTypeDef SPI_StartAsync(SPIInstance *instance, const uint8_t *tx
 {
     switch (transfer)
     {
-        case SPI_TRANSFER_TX:
-            if (instance->spi_work_mode == SPI_DMA_MODE)
-                return HAL_SPI_Transmit_DMA(instance->spi_handle, (uint8_t *)tx_data, length);
+    case SPI_TRANSFER_TX:
+        if (instance->spi_work_mode == SPI_DMA_MODE)
+            return HAL_SPI_Transmit_DMA(instance->spi_handle, (uint8_t *)tx_data, length);
 
-            if (instance->spi_work_mode == SPI_IT_MODE)
-                return HAL_SPI_Transmit_IT(instance->spi_handle, (uint8_t *)tx_data, length);
+        if (instance->spi_work_mode == SPI_IT_MODE)
+            return HAL_SPI_Transmit_IT(instance->spi_handle, (uint8_t *)tx_data, length);
 
-            break;
+        break;
 
-        case SPI_TRANSFER_RX:
-            if (instance->spi_work_mode == SPI_DMA_MODE)
-                return HAL_SPI_Receive_DMA(instance->spi_handle, rx_data, length);
+    case SPI_TRANSFER_RX:
+        if (instance->spi_work_mode == SPI_DMA_MODE)
+            return HAL_SPI_Receive_DMA(instance->spi_handle, rx_data, length);
 
-            if (instance->spi_work_mode == SPI_IT_MODE)
-                return HAL_SPI_Receive_IT(instance->spi_handle, rx_data, length);
+        if (instance->spi_work_mode == SPI_IT_MODE)
+            return HAL_SPI_Receive_IT(instance->spi_handle, rx_data, length);
 
-            break;
+        break;
 
-        case SPI_TRANSFER_TX_RX:
-            if (instance->spi_work_mode == SPI_DMA_MODE)
-                return HAL_SPI_TransmitReceive_DMA(instance->spi_handle, (uint8_t *)tx_data, rx_data, length);
+    case SPI_TRANSFER_TX_RX:
+        if (instance->spi_work_mode == SPI_DMA_MODE)
+            return HAL_SPI_TransmitReceive_DMA(instance->spi_handle, (uint8_t *)tx_data, rx_data, length);
 
-            if (instance->spi_work_mode == SPI_IT_MODE)
-                return HAL_SPI_TransmitReceive_IT(instance->spi_handle, (uint8_t *)tx_data, rx_data, length);
+        if (instance->spi_work_mode == SPI_IT_MODE)
+            return HAL_SPI_TransmitReceive_IT(instance->spi_handle, (uint8_t *)tx_data, rx_data, length);
 
-            break;
+        break;
 
-        default:
-            break;
+    default:
+        break;
     }
 
     return HAL_ERROR;
@@ -294,7 +300,8 @@ static HAL_StatusTypeDef SPI_RunTransfer(SPIInstance *instance, const uint8_t *t
 
     HAL_StatusTypeDef status = SPI_AcquireBus(instance, &bus);
 
-    if (status != HAL_OK) return status;
+    if (status != HAL_OK)
+        return status;
 
     /* 获得总线所有权以后才能选中目标 SPI 从设备。 */
     HAL_GPIO_WritePin(instance->GPIOx, instance->cs_pin, GPIO_PIN_RESET);
@@ -319,7 +326,8 @@ static HAL_StatusTypeDef SPI_RunTransfer(SPIInstance *instance, const uint8_t *t
      * 如果 HAL 连异步事务都没有成功启动，
      * 必须立即回滚 owner、busy 和 CS，否则总线会永久保持占用。
      */
-    if (status != HAL_OK) SPI_ReleaseBus(bus);
+    if (status != HAL_OK)
+        SPI_ReleaseBus(bus);
 
     return status;
 }
@@ -348,7 +356,8 @@ static void SPI_CompleteRouting(SPI_HandleTypeDef *handle, SPI_Event_e event)
 {
     SPIBusContext_t *bus = SPI_FindBus(handle);
 
-    if ((bus == NULL) || (bus->owner == NULL)) return;
+    if ((bus == NULL) || (bus->owner == NULL))
+        return;
 
     /*
      * ReleaseBus 会清空 bus->owner，
@@ -364,7 +373,8 @@ static void SPI_CompleteRouting(SPI_HandleTypeDef *handle, SPI_Event_e event)
      */
     SPI_ReleaseBus(bus);
 
-    if (owner->callback != NULL) owner->callback(owner, event);
+    if (owner->callback != NULL)
+        owner->callback(owner, event);
 }
 
 /* ============================== 设备注册 ============================== */
@@ -383,10 +393,10 @@ static void SPI_CompleteRouting(SPI_HandleTypeDef *handle, SPI_Event_e event)
  */
 SPIInstance *SPIRegister(const SPI_Init_Config_s *config)
 {
-    if ((config == NULL) || (config->spi_handle == NULL) || (config->GPIOx == NULL)) return NULL;
+    if ((config == NULL) || (config->spi_handle == NULL) || (config->GPIOx == NULL))
+        return NULL;
 
-    if ((config->spi_work_mode != SPI_BLOCK_MODE) &&
-        (config->spi_work_mode != SPI_IT_MODE) &&
+    if ((config->spi_work_mode != SPI_BLOCK_MODE) && (config->spi_work_mode != SPI_IT_MODE) &&
         (config->spi_work_mode != SPI_DMA_MODE))
     {
         return NULL;
@@ -397,32 +407,33 @@ SPIInstance *SPIRegister(const SPI_Init_Config_s *config)
     {
         SPIInstance *instance = &spi_instances[i];
 
-        if ((instance->spi_handle == config->spi_handle) &&
-            (instance->GPIOx == config->GPIOx) &&
+        if ((instance->spi_handle == config->spi_handle) && (instance->GPIOx == config->GPIOx) &&
             (instance->cs_pin == config->cs_pin))
         {
             return instance;
         }
     }
 
-    if (spi_device_count >= SPI_DEVICE_CNT) return NULL;
+    if (spi_device_count >= SPI_DEVICE_CNT)
+        return NULL;
 
     /*
      * 第一个挂到某个 SPI Handle 的设备会创建对应 Bus，
      * 后续同一 SPI 外设的设备直接共享该 Bus。
      */
-    if (SPI_FindOrAddBus(config->spi_handle) == NULL) return NULL;
+    if (SPI_FindOrAddBus(config->spi_handle) == NULL)
+        return NULL;
 
     SPIInstance *instance = &spi_instances[spi_device_count++];
 
     memset(instance, 0, sizeof(*instance));
 
-    instance->spi_handle = config->spi_handle;
-    instance->GPIOx = config->GPIOx;
-    instance->cs_pin = config->cs_pin;
+    instance->spi_handle    = config->spi_handle;
+    instance->GPIOx         = config->GPIOx;
+    instance->cs_pin        = config->cs_pin;
     instance->spi_work_mode = config->spi_work_mode;
-    instance->callback = config->callback;
-    instance->id = config->id;
+    instance->callback      = config->callback;
+    instance->id            = config->id;
 
     /* 注册完成后默认保持设备未选中。 */
     HAL_GPIO_WritePin(instance->GPIOx, instance->cs_pin, GPIO_PIN_SET);
@@ -434,21 +445,24 @@ SPIInstance *SPIRegister(const SPI_Init_Config_s *config)
 
 HAL_StatusTypeDef SPITransmit(SPIInstance *instance, const uint8_t *data, uint16_t length)
 {
-    if ((instance == NULL) || (data == NULL) || (length == 0U)) return HAL_ERROR;
+    if ((instance == NULL) || (data == NULL) || (length == 0U))
+        return HAL_ERROR;
 
     return SPI_RunTransfer(instance, data, NULL, length, SPI_TRANSFER_TX);
 }
 
 HAL_StatusTypeDef SPIRecv(SPIInstance *instance, uint8_t *data, uint16_t length)
 {
-    if ((instance == NULL) || (data == NULL) || (length == 0U)) return HAL_ERROR;
+    if ((instance == NULL) || (data == NULL) || (length == 0U))
+        return HAL_ERROR;
 
     return SPI_RunTransfer(instance, NULL, data, length, SPI_TRANSFER_RX);
 }
 
 HAL_StatusTypeDef SPITransRecv(SPIInstance *instance, const uint8_t *tx_data, uint8_t *rx_data, uint16_t length)
 {
-    if ((instance == NULL) || (tx_data == NULL) || (rx_data == NULL) || (length == 0U)) return HAL_ERROR;
+    if ((instance == NULL) || (tx_data == NULL) || (rx_data == NULL) || (length == 0U))
+        return HAL_ERROR;
 
     return SPI_RunTransfer(instance, tx_data, rx_data, length, SPI_TRANSFER_TX_RX);
 }
@@ -463,11 +477,14 @@ HAL_StatusTypeDef SPITransRecv(SPIInstance *instance, const uint8_t *tx_data, ui
  */
 HAL_StatusTypeDef SPISetMode(SPIInstance *instance, SPI_TXRX_MODE_e mode)
 {
-    if (instance == NULL) return HAL_ERROR;
+    if (instance == NULL)
+        return HAL_ERROR;
 
-    if ((mode != SPI_BLOCK_MODE) && (mode != SPI_IT_MODE) && (mode != SPI_DMA_MODE)) return HAL_ERROR;
+    if ((mode != SPI_BLOCK_MODE) && (mode != SPI_IT_MODE) && (mode != SPI_DMA_MODE))
+        return HAL_ERROR;
 
-    if (instance->is_busy != 0U) return HAL_BUSY;
+    if (instance->is_busy != 0U)
+        return HAL_BUSY;
 
     instance->spi_work_mode = mode;
 

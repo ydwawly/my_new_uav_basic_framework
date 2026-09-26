@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/15.
-//
+/** @file modules_Message_center.c @brief 固定主题的进程内发布订阅消息中心。 */
 
 #include "modules_Message_center.h"
 #include <string.h>

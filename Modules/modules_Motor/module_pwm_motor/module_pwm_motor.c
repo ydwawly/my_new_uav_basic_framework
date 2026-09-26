@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/7/26.
-//
+/** @file module_pwm_motor.c @brief 四路电机 PWM 映射、解锁与故障保护实现。 */
 
 #include "module_pwm_motor.h"
 
@@ -21,10 +19,10 @@
  *
  * 当前配置：
  *
- * 左前电机：TIM1_CH1
- * 右前电机：TIM1_CH2
- * 右后电机：TIM1_CH3
- * 左后电机：TIM1_CH4
+ * 左前电机：TIM1_CH4（PE14）
+ * 右前电机：TIM1_CH3（PE13）
+ * 右后电机：TIM1_CH2（PE11）
+ * 左后电机：TIM1_CH1（PE9）
  *
  * 同一个定时器的四个通道共享 PSC 和 ARR，
  * 因此必须使用相同 PWM 周期。

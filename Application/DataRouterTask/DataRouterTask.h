@@ -103,14 +103,14 @@ extern volatile DataRouter_LogStats_t data_router_log_stats;
 /** @brief MAVLink 发送槽池和 USB 投递路径的拥塞统计。 */
 typedef struct
 {
-    volatile uint32_t post_attempts;          /* 业务层提交总次数 */
-    volatile uint32_t posted_frames;          /* 成功进入待发送队列的帧数 */
-    volatile uint32_t invalid_rejects;        /* 参数或初始化状态无效 */
-    volatile uint32_t slot_exhaustion_drops;  /* 8 个静态发送槽全部占用 */
-    volatile uint32_t queue_send_drops;       /* 取得槽后发送队列异常满 */
-    volatile uint32_t dispatched_frames;      /* 已从槽池取出并尝试交给 USB */
-    volatile uint32_t usb_enqueue_drops;      /* USB TX 环形缓冲区拒绝帧 */
-    volatile uint32_t queue_high_watermark;   /* 待发送队列历史最高帧数 */
+    volatile uint32_t post_attempts;         /* 业务层提交总次数 */
+    volatile uint32_t posted_frames;         /* 成功进入待发送队列的帧数 */
+    volatile uint32_t invalid_rejects;       /* 参数或初始化状态无效 */
+    volatile uint32_t slot_exhaustion_drops; /* 8 个静态发送槽全部占用 */
+    volatile uint32_t queue_send_drops;      /* 取得槽后发送队列异常满 */
+    volatile uint32_t dispatched_frames;     /* 已从槽池取出并尝试交给 USB */
+    volatile uint32_t usb_enqueue_drops;     /* USB TX 环形缓冲区拒绝帧 */
+    volatile uint32_t queue_high_watermark;  /* 待发送队列历史最高帧数 */
 } DataRouter_TxStats_t;
 
 extern volatile DataRouter_TxStats_t data_router_tx_stats;

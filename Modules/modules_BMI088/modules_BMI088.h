@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/14.
-//
+/** @file modules_BMI088.h @brief BMI088 六轴 IMU 驱动接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI088_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI088_H

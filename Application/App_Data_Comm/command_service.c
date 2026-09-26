@@ -12,14 +12,14 @@
 #include "user_math.h"
 
 /* MAVLink RC_CHANNELS_OVERRIDE 使用标准 PWM 范围，不沿用 SBUS 的原始量程。 */
-#define MAVLINK_RC_CHANNEL_COUNT  8U
-#define MAVLINK_RC_PWM_MIN        1000U
-#define MAVLINK_RC_PWM_CENTER     1500U
-#define MAVLINK_RC_PWM_MAX        2000U
-#define MAVLINK_RC_PWM_DEADBAND   20U
-#define MAVLINK_RC_SWITCH_HIGH    1500U
-#define MAVLINK_RC_VALUE_RELEASE  0U
-#define MAVLINK_RC_VALUE_IGNORE   UINT16_MAX
+#define MAVLINK_RC_CHANNEL_COUNT 8U
+#define MAVLINK_RC_PWM_MIN       1000U
+#define MAVLINK_RC_PWM_CENTER    1500U
+#define MAVLINK_RC_PWM_MAX       2000U
+#define MAVLINK_RC_PWM_DEADBAND  20U
+#define MAVLINK_RC_SWITCH_HIGH   1500U
+#define MAVLINK_RC_VALUE_RELEASE 0U
+#define MAVLINK_RC_VALUE_IGNORE  UINT16_MAX
 
 /*
  * MAVLink 接收任务只发布到独立输入主题；Uav_Cmd 任务负责与实体 SBUS 仲裁，
@@ -29,25 +29,13 @@ static Publisher_t *command_publisher;
 
 /* 未覆盖或单通道释放时采用的安全初值：姿态中位、油门最低、全部开关低位。 */
 static uint16_t mavlink_rc_channels[MAVLINK_RC_CHANNEL_COUNT] = {
-    MAVLINK_RC_PWM_CENTER,
-    MAVLINK_RC_PWM_CENTER,
-    MAVLINK_RC_PWM_MIN,
-    MAVLINK_RC_PWM_CENTER,
-    MAVLINK_RC_PWM_MIN,
-    MAVLINK_RC_PWM_MIN,
-    MAVLINK_RC_PWM_MIN,
-    MAVLINK_RC_PWM_MIN,
+    MAVLINK_RC_PWM_CENTER, MAVLINK_RC_PWM_CENTER, MAVLINK_RC_PWM_MIN, MAVLINK_RC_PWM_CENTER,
+    MAVLINK_RC_PWM_MIN,    MAVLINK_RC_PWM_MIN,    MAVLINK_RC_PWM_MIN, MAVLINK_RC_PWM_MIN,
 };
 
 static const uint16_t mavlink_rc_safe_channels[MAVLINK_RC_CHANNEL_COUNT] = {
-    MAVLINK_RC_PWM_CENTER,
-    MAVLINK_RC_PWM_CENTER,
-    MAVLINK_RC_PWM_MIN,
-    MAVLINK_RC_PWM_CENTER,
-    MAVLINK_RC_PWM_MIN,
-    MAVLINK_RC_PWM_MIN,
-    MAVLINK_RC_PWM_MIN,
-    MAVLINK_RC_PWM_MIN,
+    MAVLINK_RC_PWM_CENTER, MAVLINK_RC_PWM_CENTER, MAVLINK_RC_PWM_MIN, MAVLINK_RC_PWM_CENTER,
+    MAVLINK_RC_PWM_MIN,    MAVLINK_RC_PWM_MIN,    MAVLINK_RC_PWM_MIN, MAVLINK_RC_PWM_MIN,
 };
 
 /** @brief 把输入 PWM 限制到 MAVLink 虚拟遥控器允许的标准范围。 */
@@ -113,23 +101,19 @@ static void CommandService_HandleRcOverride(const mavlink_message_t *msg)
     command.altitude_mode_raw = mavlink_rc_channels[RC_CHANNEL_ALT_HOLD];
 
     const float roll_stick = Math_NormalizeCentered(mavlink_rc_channels[RC_CHANNEL_ROLL], MAVLINK_RC_PWM_MIN,
+                                                    MAVLINK_RC_PWM_MAX, MAVLINK_RC_PWM_CENTER, MAVLINK_RC_PWM_DEADBAND);
+    const float pitch_stick = Math_NormalizeCentered(mavlink_rc_channels[RC_CHANNEL_PITCH], MAVLINK_RC_PWM_MIN,
                                                      MAVLINK_RC_PWM_MAX, MAVLINK_RC_PWM_CENTER,
                                                      MAVLINK_RC_PWM_DEADBAND);
-    const float pitch_stick = Math_NormalizeCentered(mavlink_rc_channels[RC_CHANNEL_PITCH], MAVLINK_RC_PWM_MIN,
-                                                      MAVLINK_RC_PWM_MAX, MAVLINK_RC_PWM_CENTER,
-                                                      MAVLINK_RC_PWM_DEADBAND);
     const float yaw_stick = Math_NormalizeCentered(mavlink_rc_channels[RC_CHANNEL_YAW], MAVLINK_RC_PWM_MIN,
-                                                    MAVLINK_RC_PWM_MAX, MAVLINK_RC_PWM_CENTER,
-                                                    MAVLINK_RC_PWM_DEADBAND);
+                                                   MAVLINK_RC_PWM_MAX, MAVLINK_RC_PWM_CENTER, MAVLINK_RC_PWM_DEADBAND);
 
-    command.roll_ref       = roll_stick * CONTROL_MAX_ROLL_ANGLE_RAD;
-    command.pitch_ref      = -pitch_stick * CONTROL_MAX_PITCH_ANGLE_RAD;
-    command.yaw_rate_ref   = yaw_stick * CONTROL_MAX_YAW_RATE_RAD_S;
-    command.throttle       = Math_Normalize(mavlink_rc_channels[RC_CHANNEL_THROTTLE], MAVLINK_RC_PWM_MIN,
-                                             MAVLINK_RC_PWM_MAX);
-    command.arm_request    = (mavlink_rc_channels[RC_CHANNEL_ARM] > MAVLINK_RC_SWITCH_HIGH) ? 1U : 0U;
-    command.altitude_hold_request =
-        (mavlink_rc_channels[RC_CHANNEL_ALT_HOLD] > MAVLINK_RC_SWITCH_HIGH) ? 1U : 0U;
+    command.roll_ref     = roll_stick * CONTROL_MAX_ROLL_ANGLE_RAD;
+    command.pitch_ref    = -pitch_stick * CONTROL_MAX_PITCH_ANGLE_RAD;
+    command.yaw_rate_ref = yaw_stick * CONTROL_MAX_YAW_RATE_RAD_S;
+    command.throttle = Math_Normalize(mavlink_rc_channels[RC_CHANNEL_THROTTLE], MAVLINK_RC_PWM_MIN, MAVLINK_RC_PWM_MAX);
+    command.arm_request           = (mavlink_rc_channels[RC_CHANNEL_ARM] > MAVLINK_RC_SWITCH_HIGH) ? 1U : 0U;
+    command.altitude_hold_request = (mavlink_rc_channels[RC_CHANNEL_ALT_HOLD] > MAVLINK_RC_SWITCH_HIGH) ? 1U : 0U;
 
     if (release_all != 0U)
     {

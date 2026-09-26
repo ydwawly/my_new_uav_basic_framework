@@ -1,10 +1,4 @@
-//
-// Created by Administrator on 2026/7/21.
-//
-
-//
-// Created by Administrator on 2026/1/26.
-//
+/** @file PID.c @brief 支持积分限幅等改进项的 PID 控制器实现。 */
 /**
  * @file pid.c
  * @brief PID控制器实现 (优化版)

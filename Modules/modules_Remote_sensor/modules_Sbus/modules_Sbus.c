@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/18.
-//
+/** @file modules_Sbus.c @brief SBUS 帧解析、失联判断与一致性快照实现。 */
 
 #include "modules_Sbus.h"
 #include <string.h>

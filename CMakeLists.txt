@@ -262,6 +262,8 @@ if (UAV_ENABLE_QUALITY_GATE)
     list(FILTER PROJECT_OWN_FORMAT_FILES EXCLUDE REGEX
             ".*/Modules/modules_Mavlink/c_library_v2-master/.*"
     )
+    list(FILTER PROJECT_OWN_FORMAT_FILES EXCLUDE REGEX ".*/Modules/modules_Algorithm/VQF/.*")
+    list(FILTER PROJECT_OWN_FORMAT_FILES EXCLUDE REGEX ".*/Modules/modules_BMI270/modules_BMI270_config_file\.h$")
 
     find_program(CLANG_FORMAT_EXECUTABLE
             NAMES clang-format clang-format-20 clang-format-19 clang-format-18 clang-format-17

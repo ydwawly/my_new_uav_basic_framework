@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/9.
-//
+/** @file bsp_ringbuffer.h @brief 固定容量字节环形缓冲接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RINGBUFFER_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RINGBUFFER_H

@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/18.
-//
+/** @file modules_Sbus.h @brief SBUS 遥控接收机数据接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_SBUS_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_SBUS_H

@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/8.
-//
+/** @file bsp_timestamp.c @brief TIM2 溢出扩展与原子时间戳读取实现。 */
 
 #include "bsp_timestamp.h"
 

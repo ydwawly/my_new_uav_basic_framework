@@ -270,9 +270,9 @@ void SPL06_DRDY_Handler(void)
     spl06_instance.pending_drdy_timestamp_us = Bsp_Timestamp_us_Get();
     spl06_instance.dma_state                 = SPL06_DMA_READING;
 
-    const HAL_StatusTypeDef start_status =
-        IICMemRead(spl06_instance.iic, SPL06_REG_PRESSURE_B2, IIC_MEMORY_ADDRESS_8BIT,
-                   spl06_instance.dma_rx_buffer, SPL06_DMA_FRAME_SIZE);
+    const HAL_StatusTypeDef start_status = IICMemRead(spl06_instance.iic, SPL06_REG_PRESSURE_B2,
+                                                      IIC_MEMORY_ADDRESS_8BIT, spl06_instance.dma_rx_buffer,
+                                                      SPL06_DMA_FRAME_SIZE);
 
     if (start_status != HAL_OK)
     {

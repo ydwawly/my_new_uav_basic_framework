@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/15.
-//
+/** @file bsp_memory_section.c @brief DMA 专用内存池实现。 */
 
 #include "bsp_memory_section.h"
 

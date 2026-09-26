@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/9.
-//
+/** @file bsp_RTT.h @brief SEGGER RTT 分级日志接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RTT_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_RTT_H

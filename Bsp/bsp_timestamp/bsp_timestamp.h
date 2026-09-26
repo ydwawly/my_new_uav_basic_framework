@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/8.
-//
+/** @file bsp_timestamp.h @brief 基于 TIM2 的 64 位微秒时间戳接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_TIMESTAMP_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_TIMESTAMP_H

@@ -260,8 +260,20 @@ class SensorProtocolRegression(unittest.TestCase):
         self.assertIn("event_type == HAL_UART_RXEVENT_HT", uart_bsp)
         self.assertIn("huart->RxState == HAL_UART_STATE_BUSY_RX", uart_bsp)
         self.assertIn("#define APP_SENSOR_ENABLE_GPS 0U", sensor_header)
-        self.assertIn("MTF02_ConsumeMicoLinkByte(data_ptr[index])", mtf02_driver)
-        self.assertIn("MTF02_ConsumeMspByte(data_ptr[index])", mtf02_driver)
+        callback_start = mtf02_driver.rindex("static void MTF02_UART_EventCallback")
+        callback_end = mtf02_driver.index("uint8_t MTF02_Init", callback_start)
+        callback_body = mtf02_driver[callback_start:callback_end]
+        drain_start = mtf02_driver.rindex("static void MTF02_DrainRxChunks(void)", 0, callback_start)
+        drain_end = callback_start
+        drain_body = mtf02_driver[drain_start:drain_end]
+
+        # UART 回调运行在中断上下文，只允许复制原始字节和时间戳；协议状态机在传感器任务中推进。
+        self.assertIn("memcpy(chunk->data, data_ptr, data_len)", callback_body)
+        self.assertIn("chunk->timestamp_us", callback_body)
+        self.assertNotIn("MTF02_ConsumeMicoLinkByte", callback_body)
+        self.assertNotIn("MTF02_ConsumeMspByte", callback_body)
+        self.assertIn("MTF02_ConsumeMicoLinkByte(chunk->data[byte_index], chunk->timestamp_us)", drain_body)
+        self.assertIn("MTF02_ConsumeMspByte(chunk->data[byte_index], chunk->timestamp_us)", drain_body)
         self.assertIn("MTF02_MSP2_SENSOR_RANGEFINDER", mtf02_driver)
         self.assertIn("MTF02_MSP2_SENSOR_OPTICAL_FLOW", mtf02_driver)
 

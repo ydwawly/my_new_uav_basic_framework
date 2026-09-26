@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/7/21.
-//
+/** @file PID.h @brief 通用 PID 控制器配置、状态与计算接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_PID_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_PID_H

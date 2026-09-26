@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/14.
-//
+/** @file modules_BMI270_config_file.h @brief Bosch BMI270 官方配置字节流。 */
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI270_CONFIG_FILE_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_BMI270_CONFIG_FILE_H
 #include <stdint.h>

@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/7/24.
-//
+/** @file bsp_pwm.c @brief 定时器 PWM 通道管理实现。 */
 
 #include "bsp_pwm.h"
 

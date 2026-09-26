@@ -15,9 +15,9 @@
  * ========================================================================== */
 
 #include "App_attitude_observations.h"
-#include <math.h>          /* isfinite()：浮点有限性检查，拦截 NaN / Inf */
-#include "bsp_RTT.h"       /* SEGGER RTT 日志：初始化失败时打印错误 */
-#include "modules_Message_center.h"  /* 静态 Pub-Sub：SubRegister / SubGetMessage */
+#include <math.h>                   /* isfinite()：浮点有限性检查，拦截 NaN / Inf */
+#include "bsp_RTT.h"                /* SEGGER RTT 日志：初始化失败时打印错误 */
+#include "modules_Message_center.h" /* 静态 Pub-Sub：SubRegister / SubGetMessage */
 
 /* 光流融合总开关：为 1 才订阅并处理 MTF02 */
 #if (ATTITUDE_ENABLE_FLOW == 1U)
@@ -56,7 +56,9 @@ static Subscriber_t *flow_subscriber;
 static void Attitude_AccumulateFlowGyro(AppAttitudeRuntime_t *runtime, const float gyro_rps[3], float dt_s)
 {
     /* 入参合法性：空指针、非有限数、非正步长直接放弃本次积分 */
-    if ((gyro_rps == NULL) || (!isfinite(gyro_rps[0])) || (!isfinite(gyro_rps[1])) || (!isfinite(dt_s)) || (dt_s <= 0.0f)) return;
+    if ((gyro_rps == NULL) || (!isfinite(gyro_rps[0])) || (!isfinite(gyro_rps[1])) || (!isfinite(dt_s)) ||
+        (dt_s <= 0.0f))
+        return;
 
     /* 角位移增量 = 角速度 × 步长，逐周期累加（roll/pitch 两轴即可，偏航不影响下视光流的平移估计） */
     runtime->flow_gyro_integral_rad[0] += gyro_rps[0] * dt_s;
@@ -72,7 +74,7 @@ static void Attitude_ResetFlowGyro(AppAttitudeRuntime_t *runtime)
 {
     runtime->flow_gyro_integral_rad[0] = 0.0f;
     runtime->flow_gyro_integral_rad[1] = 0.0f;
-    runtime->flow_gyro_interval_s = 0.0f;
+    runtime->flow_gyro_interval_s      = 0.0f;
 }
 
 /**
@@ -96,15 +98,18 @@ static bool Attitude_BuildFlow(const AppAttitudeRuntime_t *runtime, const MTF02_
     {
         const float raw[2] = {(float)flow->flow_vel_x, (float)flow->flow_vel_y};
         /* 机体系 vx/vy = 原始光流 × 对地高度 × 轴标定系数（把像素速度换算成 m/s） */
-        observation->vel_body_xy_mps[0] = raw[ATTITUDE_MTF02_FLOW_X_SOURCE] * height_m * ATTITUDE_MTF02_FLOW_X_SCALE_MPS;
-        observation->vel_body_xy_mps[1] = raw[ATTITUDE_MTF02_FLOW_Y_SOURCE] * height_m * ATTITUDE_MTF02_FLOW_Y_SCALE_MPS;
+        observation->vel_body_xy_mps[0] = raw[ATTITUDE_MTF02_FLOW_X_SOURCE] * height_m *
+                                          ATTITUDE_MTF02_FLOW_X_SCALE_MPS;
+        observation->vel_body_xy_mps[1] = raw[ATTITUDE_MTF02_FLOW_Y_SOURCE] * height_m *
+                                          ATTITUDE_MTF02_FLOW_Y_SCALE_MPS;
         return true;
     }
 
     /* ---- 分支二：MSP_V2 协议，角速度型光流，需要旋转补偿 ---- */
     /* 协议不符 / 帧间隔时间不在合理窗口 / 陀螺积分区间为空，则无法补偿，判无效 */
     if ((flow->flow_protocol != MTF02_PROTOCOL_MSP_V2) || (flow->flow_delta_time_us < ATTITUDE_MTF02_MSP_MIN_DT_US) ||
-        (flow->flow_delta_time_us > ATTITUDE_MTF02_MSP_MAX_DT_US) || (runtime->flow_gyro_interval_s <= 0.0f)) return false;
+        (flow->flow_delta_time_us > ATTITUDE_MTF02_MSP_MAX_DT_US) || (runtime->flow_gyro_interval_s <= 0.0f))
+        return false;
 
     /* 区间平均陀螺角速度 = 累计角位移 / 累计时长 */
     const float gyro_x = runtime->flow_gyro_integral_rad[0] / runtime->flow_gyro_interval_s;
@@ -114,8 +119,10 @@ static bool Attitude_BuildFlow(const AppAttitudeRuntime_t *runtime, const MTF02_
     const float compensated[2] = {flow->flow_rate_rad_s[0] - gyro_x, flow->flow_rate_rad_s[1] - gyro_y};
 
     /* 补偿后的角速度 × 高度 × 标定系数 = 机体系平移线速度 */
-    observation->vel_body_xy_mps[0] = compensated[ATTITUDE_MTF02_MSP_FLOW_X_SOURCE] * height_m * ATTITUDE_MTF02_MSP_FLOW_X_SCALE;
-    observation->vel_body_xy_mps[1] = compensated[ATTITUDE_MTF02_MSP_FLOW_Y_SOURCE] * height_m * ATTITUDE_MTF02_MSP_FLOW_Y_SCALE;
+    observation->vel_body_xy_mps[0] = compensated[ATTITUDE_MTF02_MSP_FLOW_X_SOURCE] * height_m *
+                                      ATTITUDE_MTF02_MSP_FLOW_X_SCALE;
+    observation->vel_body_xy_mps[1] = compensated[ATTITUDE_MTF02_MSP_FLOW_Y_SOURCE] * height_m *
+                                      ATTITUDE_MTF02_MSP_FLOW_Y_SCALE;
 
     /* 最后一道防线：结果必须是有限数，防止 NaN/Inf 进入滤波器 */
     return isfinite(observation->vel_body_xy_mps[0]) && isfinite(observation->vel_body_xy_mps[1]);
@@ -128,13 +135,15 @@ static bool Attitude_BuildFlow(const AppAttitudeRuntime_t *runtime, const MTF02_
  */
 static void APP_ATTITUDE_HOT_CODE Attitude_UpdateFlow(NavESKF *eskf, AppAttitudeRuntime_t *runtime)
 {
-    MTF02_Data_t flow;   /* 栈上局部副本，SubGetMessage 会把 Topic 共享缓存 memcpy 到这里 */
+    MTF02_Data_t flow; /* 栈上局部副本，SubGetMessage 会把 Topic 共享缓存 memcpy 到这里 */
 
     /* 非阻塞读取（超时 0U）：没有新数据立即返回，绝不等候，保证实时周期 */
-    if (SubGetMessage(flow_subscriber, &flow, 0U) == 0U) return;
+    if (SubGetMessage(flow_subscriber, &flow, 0U) == 0U)
+        return;
 
     /* 时间戳去重：从未更新过(=0)，或与上一帧时间戳相同（重复帧），都不再融合 */
-    if ((flow.flow_timestamp_us == 0ULL) || (flow.flow_timestamp_us == runtime->last_mtf_flow_timestamp_us)) return;
+    if ((flow.flow_timestamp_us == 0ULL) || (flow.flow_timestamp_us == runtime->last_mtf_flow_timestamp_us))
+        return;
     runtime->last_mtf_flow_timestamp_us = flow.flow_timestamp_us;
 
     /* MTF02 模块自带测距，取其高度（毫米 → 米） */
@@ -183,30 +192,34 @@ static Subscriber_t *range_subscriber;
  */
 static void APP_ATTITUDE_HOT_CODE Attitude_UpdateRange(NavESKF *eskf, AppAttitudeRuntime_t *runtime)
 {
-    TFminiPlus_Data_t range;  /* 栈上局部副本 */
+    TFminiPlus_Data_t range; /* 栈上局部副本 */
 
     /* 非阻塞读取，无新数据立即返回 */
-    if (SubGetMessage(range_subscriber, &range, 0U) == 0U) return;
+    if (SubGetMessage(range_subscriber, &range, 0U) == 0U)
+        return;
 
     /* 时间戳去重 */
-    if ((range.timestamp_us == 0ULL) || (range.timestamp_us == runtime->last_tfmini_timestamp_us)) return;
+    if ((range.timestamp_us == 0ULL) || (range.timestamp_us == runtime->last_tfmini_timestamp_us))
+        return;
     runtime->last_tfmini_timestamp_us = range.timestamp_us;
 
     /* 模块自检无效，或距离读数为 0（异常值），丢弃 */
-    if ((range.is_valid == 0U) || (range.distance == 0U)) return;
+    if ((range.is_valid == 0U) || (range.distance == 0U))
+        return;
 
     /* 组装测距观测：
      *   range_m      原始距离 × 单位换算系数 → 米
      *   ground_down_m 安装/地面参考偏置（如传感器离地安装高度）
      *   std_m        测距噪声标准差（量测协方差 R 用） */
     const NavRangeObservation observation = {
-        .range_m = (float)range.distance * ATTITUDE_TFMINI_DISTANCE_SCALE_M,
+        .range_m       = (float)range.distance * ATTITUDE_TFMINI_DISTANCE_SCALE_M,
         .ground_down_m = ATTITUDE_RANGE_GROUND_DOWN_M,
-        .std_m = ATTITUDE_RANGE_STD_M,
+        .std_m         = ATTITUDE_RANGE_STD_M,
     };
 
     /* 送入 ESKF 做 Z 轴更新；成功才记录“最近一次有效融合时间戳”，供健康监测/超时判断 */
-    if (NAV_ESKF_UpdateRange(eskf, &observation)) runtime->last_range_fusion_timestamp_us = range.timestamp_us;
+    if (NAV_ESKF_UpdateRange(eskf, &observation))
+        runtime->last_range_fusion_timestamp_us = range.timestamp_us;
 }
 #endif /* ATTITUDE_ENABLE_RANGE */
 
@@ -259,7 +272,8 @@ void APP_ATTITUDE_HOT_CODE App_Attitude_Observations_Update(NavESKF *eskf, AppAt
                                                             const float gyro_rps[3], float dt_s)
 {
     /* 空指针保护 */
-    if ((eskf == NULL) || (runtime == NULL)) return;
+    if ((eskf == NULL) || (runtime == NULL))
+        return;
 
 #if ((APP_ATTITUDE_SOURCE == APP_ATTITUDE_SOURCE_REAL) && (ATTITUDE_PARALLEL_ESKF_ENABLE == 1U))
 

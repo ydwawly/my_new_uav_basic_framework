@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-#define CONTROL_COMMAND_TOPIC_NAME "control_command"
+#define CONTROL_COMMAND_TOPIC_NAME    "control_command"
 #define MAVLINK_RC_COMMAND_TOPIC_NAME "mavlink_rc_command"
 
 typedef struct

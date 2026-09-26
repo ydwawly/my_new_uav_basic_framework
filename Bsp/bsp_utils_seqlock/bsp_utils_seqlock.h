@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/15.
-//
+/** @file bsp_utils_seqlock.h @brief 单写者场景下的无锁一致性快照辅助接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UTILS_SEQLOCK_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UTILS_SEQLOCK_H

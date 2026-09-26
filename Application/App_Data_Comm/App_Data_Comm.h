@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/7/18.
-//
+/** @file App_Data_Comm.h @brief MAVLink 通信服务初始化与任务入口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_APP_DATA_COMM_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_APP_DATA_COMM_H

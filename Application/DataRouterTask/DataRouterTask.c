@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/7/12.
-//
+/** @file DataRouterTask.c @brief MAVLink 与 SD 日志数据的异步路由任务。 */
 
 #include "DataRouterTask.h"
 #include <stddef.h>
@@ -436,7 +434,7 @@ bool DataRouter_PostFrame(const uint8_t *data, uint16_t length)
 
     __atomic_fetch_add(&data_router_tx_stats.posted_frames, 1U, __ATOMIC_RELAXED);
 
-    const uint32_t queued = (uint32_t)uxQueueMessagesWaiting(data_router.tx_queue);
+    const uint32_t queued         = (uint32_t)uxQueueMessagesWaiting(data_router.tx_queue);
     uint32_t       high_watermark = __atomic_load_n(&data_router_tx_stats.queue_high_watermark, __ATOMIC_RELAXED);
     while ((queued > high_watermark) &&
            (!__atomic_compare_exchange_n(&data_router_tx_stats.queue_high_watermark, &high_watermark, queued, false,

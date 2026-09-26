@@ -20,7 +20,7 @@
 #include "spi.h"
 
 /* 最大 SPI 逻辑设备数量。设备启动后常驻，因此采用固定静态容量。 */
-#define SPI_DEVICE_CNT    8U
+#define SPI_DEVICE_CNT 8U
 
 /* 阻塞传输最大等待时间，单位 ms。 */
 #define SPI_BLOCK_TIMEOUT 50U
@@ -74,7 +74,7 @@ struct SPIInstance_t
     SPI_HandleTypeDef *spi_handle;
 
     GPIO_TypeDef *GPIOx;
-    uint16_t cs_pin;
+    uint16_t      cs_pin;
 
     SPI_TXRX_MODE_e spi_work_mode;
 
@@ -103,11 +103,11 @@ typedef struct
     SPI_HandleTypeDef *spi_handle;
 
     GPIO_TypeDef *GPIOx;
-    uint16_t cs_pin;
+    uint16_t      cs_pin;
 
     SPI_TXRX_MODE_e spi_work_mode;
-    spi_callback_t callback;
-    void *id;
+    spi_callback_t  callback;
+    void           *id;
 } SPI_Init_Config_s;
 
 /**

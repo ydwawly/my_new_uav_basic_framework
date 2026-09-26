@@ -3,8 +3,8 @@
  * @brief 飞控应用层统一初始化入口与可观测状态
  */
 
-#ifndef MY_NEW_UAV_BASIC_FRAMEWORK_APP_SYSTEM_INIT_H
-#define MY_NEW_UAV_BASIC_FRAMEWORK_APP_SYSTEM_INIT_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_APP_SYSTEM_INIT_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_APP_SYSTEM_INIT_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -12,10 +12,10 @@
 /* ========================== 安全配置 ========================== */
 
 /*
- * 电机输出默认关闭。
+ * 当前正式配置启用电机输出。
  *
- * 设为 1 前必须完成：拆桨、确认电机编号/旋向、校验 IMU 坐标系与 Mixer 符号、
- * 实测 SBUS 通道及解锁阈值。启用后启动阶段会输出 1000 us 的锁定脉宽。
+ * 烧录、调试和首次硬件验证必须拆桨，并确认电机编号/旋向、IMU 坐标系、
+ * Mixer 符号、SBUS 通道及解锁阈值。启动阶段保持 1000 us 锁定脉宽。
  */
 #ifndef APP_ENABLE_MOTOR_OUTPUT
 #define APP_ENABLE_MOTOR_OUTPUT 1U
@@ -64,4 +64,4 @@ extern volatile AppSystemStatus_t app_system_status;
  */
 bool App_SystemInit(void);
 
-#endif /* MY_NEW_UAV_BASIC_FRAMEWORK_APP_SYSTEM_INIT_H */
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_APP_SYSTEM_INIT_H */

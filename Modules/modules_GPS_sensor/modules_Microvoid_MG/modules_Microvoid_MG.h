@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/18.
-//
+/** @file modules_Microvoid_MG.h @brief 微空 MG GPS 数据接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_MICROVOID_MG_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_MODULES_MICROVOID_MG_H

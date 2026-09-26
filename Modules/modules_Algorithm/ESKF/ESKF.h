@@ -1,7 +1,4 @@
-//
-// Created by Administrator on 2026/7/22.
-// Refactored with Aerospace-Grade Comments & Formatting.
-//
+/** @file ESKF.h @brief 导航误差状态卡尔曼滤波器的公共类型与接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_ESKF_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_ESKF_H

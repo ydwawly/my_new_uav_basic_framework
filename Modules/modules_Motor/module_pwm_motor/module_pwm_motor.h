@@ -1,9 +1,7 @@
-//
-// Created by Administrator on 2026/7/26.
-//
+/** @file module_pwm_motor.h @brief 四旋翼 PWM 电机输出与安全状态接口。 */
 
-#ifndef MY_NEW_UAV_BASIC_FRAMEWORK_MODULE_PWM_MOTOR_H
-#define MY_NEW_UAV_BASIC_FRAMEWORK_MODULE_PWM_MOTOR_H
+#ifndef STM32H743_UAV_FLIGHT_CONTROLLER_MODULE_PWM_MOTOR_H
+#define STM32H743_UAV_FLIGHT_CONTROLLER_MODULE_PWM_MOTOR_H
 
 #include <stdint.h>
 
@@ -282,4 +280,4 @@ float Motor_GetOutput(Motor_ID_e motor_id);
  */
 uint16_t Motor_GetPulseWidthUs(Motor_ID_e motor_id);
 
-#endif // MY_NEW_UAV_BASIC_FRAMEWORK_MODULE_PWM_MOTOR_H
+#endif /* STM32H743_UAV_FLIGHT_CONTROLLER_MODULE_PWM_MOTOR_H */

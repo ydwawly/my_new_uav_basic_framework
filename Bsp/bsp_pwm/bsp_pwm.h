@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/7/26.
-//
+/** @file bsp_pwm.h @brief 定时器 PWM 通道注册与占空比输出接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_PWM_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_PWM_H

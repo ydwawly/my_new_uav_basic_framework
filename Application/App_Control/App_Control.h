@@ -17,32 +17,32 @@
 /* 姿态通知缺失时的最长等待时间；超时只执行安全检查，不运行正常控制律。 */
 #define CONTROL_TASK_MAX_WAIT_MS 1U
 
-#define CONTROL_CMD_TIMEOUT_US 100000ULL
-#define CONTROL_FEEDBACK_TIMEOUT_US 10000ULL
+#define CONTROL_CMD_TIMEOUT_US                100000ULL
+#define CONTROL_FEEDBACK_TIMEOUT_US           10000ULL
 #define CONTROL_TIMESTAMP_FUTURE_TOLERANCE_US 5000ULL
 
-#define CONTROL_ARM_THROTTLE_MAX 0.05f
+#define CONTROL_ARM_THROTTLE_MAX       0.05f
 #define CONTROL_RATE_LOOP_MIN_THROTTLE 0.08f
 
 /* ============================== 姿态外环 ============================== */
 
-#define CONTROL_ATTITUDE_ROLL_KP 4.0f
+#define CONTROL_ATTITUDE_ROLL_KP  4.0f
 #define CONTROL_ATTITUDE_PITCH_KP 4.0f
-#define CONTROL_ATTITUDE_YAW_KP 2.0f
+#define CONTROL_ATTITUDE_YAW_KP   2.0f
 
-#define CONTROL_ATTITUDE_MAX_RATE_RPS 1.6f
+#define CONTROL_ATTITUDE_MAX_RATE_RPS     1.6f
 #define CONTROL_ATTITUDE_MAX_YAW_RATE_RPS 1.0f
 
 /* ============================== 角速度内环 ============================== */
 
-#define CONTROL_RATE_RP_KP 0.08f
-#define CONTROL_RATE_RP_KI 0.015f
-#define CONTROL_RATE_RP_MAX_OUT 0.15f
+#define CONTROL_RATE_RP_KP             0.08f
+#define CONTROL_RATE_RP_KI             0.015f
+#define CONTROL_RATE_RP_MAX_OUT        0.15f
 #define CONTROL_RATE_RP_INTEGRAL_LIMIT 0.04f
 
-#define CONTROL_RATE_YAW_KP 0.14f
-#define CONTROL_RATE_YAW_KI 0.015f
-#define CONTROL_RATE_YAW_MAX_OUT 0.10f
+#define CONTROL_RATE_YAW_KP             0.14f
+#define CONTROL_RATE_YAW_KI             0.015f
+#define CONTROL_RATE_YAW_MAX_OUT        0.10f
 #define CONTROL_RATE_YAW_INTEGRAL_LIMIT 0.04f
 
 /* ============================== 定高控制 ============================== */
@@ -50,12 +50,12 @@
 #define CONTROL_ALT_RANGE_TIMEOUT_US 150000ULL
 
 #define CONTROL_ALT_ENTRY_MIN_HEIGHT_M 0.15f
-#define CONTROL_ALT_MIN_HEIGHT_M 0.15f
-#define CONTROL_ALT_MAX_HEIGHT_M 4.00f
+#define CONTROL_ALT_MIN_HEIGHT_M       0.15f
+#define CONTROL_ALT_MAX_HEIGHT_M       4.00f
 
 #define CONTROL_ALT_STICK_DEADBAND 0.04f
 
-#define CONTROL_ALT_MAX_CLIMB_RATE_MPS 0.80f
+#define CONTROL_ALT_MAX_CLIMB_RATE_MPS   0.80f
 #define CONTROL_ALT_MAX_DESCENT_RATE_MPS 0.50f
 
 #define CONTROL_ALT_POSITION_KP 0.80f
@@ -73,7 +73,7 @@
 
 typedef enum
 {
-    CONTROL_NAVIGATION_ESKF_VALID = (1U << 0U),
+    CONTROL_NAVIGATION_ESKF_VALID  = (1U << 0U),
     CONTROL_NAVIGATION_RANGE_FUSED = (1U << 1U)
 } ControlNavigationFlag_e;
 
@@ -158,9 +158,9 @@ typedef struct
 typedef struct
 {
     Subscriber_t *uav_cmd_subscriber;
-    Publisher_t *log_publisher;
+    Publisher_t  *log_publisher;
 
-    Uav_Cmd_t uav_cmd;
+    Uav_Cmd_t          uav_cmd;
     Control_Feedback_t feedback;
 
     PIDInstance roll_rate_pid;

@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/14.
-//
+/** @file modules_BMI270.c @brief BMI270 初始化、FIFO/DMA 采样与校准实现。 */
 
 #include "modules_BMI270.h"
 #include "bsp_timestamp.h"

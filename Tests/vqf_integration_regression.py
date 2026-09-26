@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 import struct
 from pathlib import Path
 
@@ -78,21 +79,21 @@ def test_real_path_keeps_vqf_as_control_source() -> None:
     assert "Control_Attitude.h" not in attitude_header
     assert not (ATTITUDE_DIR / "Control_Attitude.c").exists()
     assert not (ATTITUDE_DIR / "Control_Attitude.h").exists()
-    assert "Real sensor VQF 6D task started; ESKF diagnostic only." in attitude_source
+    assert "[Attitude] VQF + navigation ESKF task started." in attitude_source
     assert "VqfC_Update(sample->gyro_rps" in attitude_source
     assert "NAV_ESKF_Predict(&nav_eskf_instance, &prediction)" in attitude_source
     assert "NAV_ESKF_UpdateGravity(&nav_eskf_instance, &prediction)" in attitude_source
-    assert "attitude_vqf_debug_snapshot = attitude_runtime.vqf_output;" in attitude_source
-    assert "output->control_q_nb = output->state.q_nb;" in attitude_source
-    assert "Attitude_UpdateEstimatorComparisonSnapshot" in attitude_source
+    assert "feedback.q_nb[0] = q.w;" in attitude_source
+    assert "feedback.gyro_rps[i] = gyro_rps[i] - attitude_runtime.vqf_output.gyro_bias_rps[i];" in attitude_source
+    assert "Control_SetFeedback(&feedback);" in attitude_source
     assert "ATTITUDE_ESTIMATE_TOPIC_NAME" not in attitude_header
     assert "estimate_publisher" not in attitude_source
     assert "App_Attitude_Observations_Update" in attitude_source
     assert "NAV_ESKF_UpdateFlow" in observation_source
     assert "NAV_ESKF_UpdateRange" in observation_source
     assert "#define ATTITUDE_PARALLEL_ESKF_ENABLE 1U" in config
-    assert "#define ATTITUDE_ENABLE_FLOW 1U" in config
-    assert "#define ATTITUDE_ENABLE_RANGE 1U" in config
+    assert re.search(r"#define\s+ATTITUDE_ENABLE_FLOW\s+1U", config)
+    assert re.search(r"#define\s+ATTITUDE_ENABLE_RANGE\s+1U", config)
     assert "ATTITUDE_MTF02_ENABLE_RANGE_FUSION" not in config
     assert "ATTITUDE_ENABLE_MAG" not in config
     assert "ATTITUDE_ENABLE_BARO" not in config
@@ -100,24 +101,12 @@ def test_real_path_keeps_vqf_as_control_source() -> None:
 
 def test_estimator_comparison_log_layout_is_versioned() -> None:
     sd_header = (ROOT / "Modules/modules_SD_Card/modules_SD_Card.h").read_text(encoding="utf-8")
-    log_service = (ROOT / "Application/App_Data_Comm/log_service.c").read_text(encoding="utf-8")
-    analyzer = (
-        ROOT.parents[1]
-        / "uav_control_upper_computer/artifacts/sd-downloads/analyze_flog.py"
-    ).read_text(encoding="utf-8")
-
     assert "SD_CARD_MSG_ESTIMATOR_COMPARISON = 6U" in sd_header
     assert "sizeof(SDCard_EstimatorComparisonPayloadV1_t) == 96U" in sd_header
     assert "sizeof(SDCard_EstimatorComparisonPayloadV2_t) == 200U" in sd_header
-    assert "SDCard_EnqueueFrame(SD_CARD_MSG_ESTIMATOR_COMPARISON, 2U" in log_service
-    assert "ATTITUDE_ESTIMATOR_COMPARISON_LOG_INTERVAL_US 20000ULL" in (
-        ROOT / "Application/App_attitude/App_attitude_config.h"
-    ).read_text(encoding="utf-8")
+    # 历史日志结构继续保留解码 ABI；当前固件不再默认生成该诊断帧。
     assert struct.calcsize("<8I15f4B") == 96
     assert struct.calcsize("<8I15f4B16f8IH6B") == 200
-    assert 'ESTIMATOR_PAYLOAD_V1 = struct.Struct("<8I15f4B")' in analyzer
-    assert 'ESTIMATOR_PAYLOAD_V2 = struct.Struct("<8I15f4B16f8IH6B")' in analyzer
-    assert "def decode_estimator_comparison" in analyzer
 
 
 def test_frd_ned_tilt_signs_and_heading_zero() -> None:

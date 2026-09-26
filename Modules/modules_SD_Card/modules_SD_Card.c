@@ -472,8 +472,8 @@ bool SDCard_Init(void)
     }
 
     sd_card_state.initialized = 1U;
-    sd_task_handle = xTaskCreateStatic(SDCard_Task, "sd_card", SD_CARD_TASK_STACK_WORDS, NULL, APP_TASK_PRIORITY_SD_CARD,
-                                       sd_task_stack, &sd_task_control);
+    sd_task_handle            = xTaskCreateStatic(SDCard_Task, "sd_card", SD_CARD_TASK_STACK_WORDS, NULL,
+                                                  APP_TASK_PRIORITY_SD_CARD, sd_task_stack, &sd_task_control);
 
     if (sd_task_handle == NULL)
     {

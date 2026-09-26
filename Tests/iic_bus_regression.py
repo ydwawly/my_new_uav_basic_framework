@@ -351,10 +351,8 @@ def find_host_gcc() -> Path | None:
     if on_path := shutil.which("gcc"):
         return Path(on_path)
 
-    candidates: list[Path] = []
-    for root in (Path("D:/applications/Clion"), Path.home() / "AppData/Local/JetBrains/Toolbox/apps/CLion"):
-        if root.exists():
-            candidates.extend(root.glob("**/bin/mingw/bin/gcc.exe"))
+    toolbox = Path.home() / "AppData/Local/JetBrains/Toolbox/apps/CLion"
+    candidates = list(toolbox.glob("**/bin/mingw/bin/gcc.exe")) if toolbox.exists() else []
     return sorted(candidates)[-1] if candidates else None
 
 

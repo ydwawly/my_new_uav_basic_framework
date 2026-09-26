@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/15.
-//
+/** @file bsp_uart.c @brief UART 设备管理、DMA 接收与 HAL 回调分发。 */
 
 #include "bsp_uart.h"
 #include "FreeRTOS.h"

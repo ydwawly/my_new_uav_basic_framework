@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/15.
-//
+/** @file bsp_memory_section.h @brief DMA 内存池与缓存一致性辅助接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_MEMORY_SECTION_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_MEMORY_SECTION_H

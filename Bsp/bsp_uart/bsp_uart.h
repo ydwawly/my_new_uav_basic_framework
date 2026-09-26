@@ -1,6 +1,4 @@
-//
-// Created by Administrator on 2026/6/15.
-//
+/** @file bsp_uart.h @brief UART DMA/中断接收与设备注册接口。 */
 
 #ifndef STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UART_H
 #define STM32H743_UAV_FLIGHT_CONTROLLER_BSP_UART_H

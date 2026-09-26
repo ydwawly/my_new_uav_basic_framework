@@ -22,12 +22,12 @@
  * bsp_ringbuffer 按字节管理，容量必须是 2 的幂。
  * 2 KB 可容纳 85 个 24 字节样本，能覆盖约 85 ms 的 1 kHz IMU 数据积压。
  */
-#define APP_IMU_FFT_QUEUE_BYTES       2048U
+#define APP_IMU_FFT_QUEUE_BYTES 2048U
 /* 限制 SensorHub 单轮最多搬运的样本数，防止一次执行时间失去上界。 */
 #define APP_IMU_FFT_MAX_DRAIN_PER_RUN 16U
 #define APP_IMU_FFT_RESULT_TOPIC      "imu_fft_result"
 /* FFT 工作区和队列放入 DTCM，避免 D-Cache 一致性问题并降低访问抖动。 */
-#define APP_IMU_FFT_MEMORY_ATTRIBUTE  __attribute__((section(".dtcm"), aligned(32)))
+#define APP_IMU_FFT_MEMORY_ATTRIBUTE __attribute__((section(".dtcm"), aligned(32)))
 
 #if ((APP_IMU_FFT_QUEUE_BYTES & (APP_IMU_FFT_QUEUE_BYTES - 1U)) != 0U)
 #error "APP_IMU_FFT_QUEUE_BYTES must be a power of two"
@@ -36,9 +36,9 @@
 /** @brief Attitude 写入、SensorHub 读取的紧凑样本。 */
 typedef struct
 {
-    uint64_t timestamp_us;                                /**< IMU 采样时刻，而不是入队时刻 */
-    uint32_t sequence;                                    /**< 连续递增序号，用于发现中途丢样 */
-    float    gyro_rps[ADAPTIVE_NOTCH_AXIS_COUNT];          /**< 陷波前的三轴角速度，单位 rad/s */
+    uint64_t timestamp_us;                        /**< IMU 采样时刻，而不是入队时刻 */
+    uint32_t sequence;                            /**< 连续递增序号，用于发现中途丢样 */
+    float    gyro_rps[ADAPTIVE_NOTCH_AXIS_COUNT]; /**< 陷波前的三轴角速度，单位 rad/s */
 } AppImuFftSample_t;
 
 /** @brief FFT 管线全部静态状态；初始化后不再申请动态内存。 */
@@ -47,16 +47,16 @@ typedef struct
     AdaptiveNotchTracker_t tracker;      /**< 仅由 SensorHub 访问的频谱跟踪器 */
     RingBuffer_t           sample_queue; /**< Attitude 写、SensorHub 读的 SPSC 队列 */
     /* RingBuffer 使用的静态字节池。 */
-    uint8_t      sample_pool[APP_IMU_FFT_QUEUE_BYTES];
+    uint8_t       sample_pool[APP_IMU_FFT_QUEUE_BYTES];
     Publisher_t  *result_publisher;  /**< SensorHub 使用的结果发布端 */
     Subscriber_t *result_subscriber; /**< Attitude 使用的结果订阅端 */
 
-    uint32_t producer_sequence;                           /**< Attitude 侧发送序号 */
-    uint32_t expected_sequence;                           /**< SensorHub 期望收到的下一序号 */
-    uint64_t previous_timestamp_us;                       /**< 上一个已消费样本的采样时刻 */
-    uint32_t result_generation;                           /**< 已完成的三轴分析代数 */
-    uint32_t nominal_interval_us;                         /**< 按配置采样率计算的标称周期 */
-    uint8_t  initialized;                                 /**< 防止重复注册消息主题 */
+    uint32_t producer_sequence;     /**< Attitude 侧发送序号 */
+    uint32_t expected_sequence;     /**< SensorHub 期望收到的下一序号 */
+    uint64_t previous_timestamp_us; /**< 上一个已消费样本的采样时刻 */
+    uint32_t result_generation;     /**< 已完成的三轴分析代数 */
+    uint32_t nominal_interval_us;   /**< 按配置采样率计算的标称周期 */
+    uint8_t  initialized;           /**< 防止重复注册消息主题 */
 } AppImuFftState_t;
 
 static AppImuFftState_t app_imu_fft APP_IMU_FFT_MEMORY_ATTRIBUTE;
@@ -149,8 +149,7 @@ bool App_ImuFft_PushSample(uint64_t timestamp_us, const float gyro_rps[3])
     }
 
     /* RingBuffer_Push 只在整帧空间足够时写入，不会留下半个 IMU 样本。 */
-    if ((timestamp_us == 0ULL) ||
-        (!RingBuffer_Push(&app_imu_fft.sample_queue, &sample, (uint32_t)sizeof(sample))))
+    if ((timestamp_us == 0ULL) || (!RingBuffer_Push(&app_imu_fft.sample_queue, &sample, (uint32_t)sizeof(sample))))
     {
         app_imu_fft_status.dropped_samples++;
         return false;

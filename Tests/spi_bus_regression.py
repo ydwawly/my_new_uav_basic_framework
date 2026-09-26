@@ -24,6 +24,27 @@ typedef struct
     uint32_t tag;
 } SPI_HandleTypeDef;
 
+extern uint32_t mock_primask;
+
+static inline uint32_t __get_PRIMASK(void)
+{
+    return mock_primask;
+}
+
+static inline void __disable_irq(void)
+{
+    mock_primask = 1U;
+}
+
+static inline void __enable_irq(void)
+{
+    mock_primask = 0U;
+}
+
+static inline void __DMB(void)
+{
+}
+
 typedef enum
 {
     HAL_OK = 0U,
@@ -75,8 +96,29 @@ MOCK_FREERTOS_H = r"""
 #define FREERTOS_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 void *pvPortMalloc(size_t size);
+extern uint32_t mock_primask;
+
+static inline uint32_t __get_PRIMASK(void)
+{
+    return mock_primask;
+}
+
+static inline void __disable_irq(void)
+{
+    mock_primask = 1U;
+}
+
+static inline void __enable_irq(void)
+{
+    mock_primask = 0U;
+}
+
+static inline void __DMB(void)
+{
+}
 
 #endif
 """
@@ -127,6 +169,7 @@ static uint8_t callback_busy;
 static uint8_t callback_should_restart;
 static size_t callback_count;
 static uint8_t callback_data[2] = {0x5AU, 0xA5U};
+uint32_t mock_primask;
 
 void *pvPortMalloc(size_t size)
 {
@@ -340,10 +383,8 @@ def find_host_gcc() -> Path | None:
     if on_path:
         return Path(on_path)
 
-    candidates: list[Path] = []
-    for root in (Path("D:/applications/Clion"), Path.home() / "AppData/Local/JetBrains/Toolbox/apps/CLion"):
-        if root.exists():
-            candidates.extend(root.glob("**/bin/mingw/bin/gcc.exe"))
+    toolbox = Path.home() / "AppData/Local/JetBrains/Toolbox/apps/CLion"
+    candidates = list(toolbox.glob("**/bin/mingw/bin/gcc.exe")) if toolbox.exists() else []
     return sorted(candidates)[-1] if candidates else None
 
 
