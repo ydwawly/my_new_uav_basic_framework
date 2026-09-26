@@ -25,6 +25,7 @@
 | RelWithDebInfo / SystemView ON | 通过 |
 | `git diff --check` | 通过 |
 | 路径、序列号和旧符号扫描 | 通过 |
+| GitHub Actions 远端运行 | 未启动：仓库账户因 billing 状态被 GitHub 锁定；本地等价流程已通过 |
 
 Release 与 RelWithDebInfo 构建均出现第三方 FatFs R0.12c 在 GCC 13.3.1 `-Ofast` 下的 `gen_numname` 静态分析警告；链接成功，自有代码无新增编译错误。本轮不直接修改第三方 FatFs，后续应单独评估升级或上游补丁。
 
