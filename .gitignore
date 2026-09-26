@@ -32,6 +32,7 @@ compile_commands.json
 **/__pycache__/
 *.py[cod]
 /.pytest_cache/
+/.ci-venv/
 /.coverage
 
 # OS/editor files

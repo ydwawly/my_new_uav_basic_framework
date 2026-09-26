@@ -9,3 +9,10 @@
 *.jpeg binary
 *.gif binary
 *.pdf binary
+
+# Preserve upstream/generated formatting; whitespace checks target maintained code.
+Drivers/** -whitespace
+Middlewares/** -whitespace
+Modules/modules_Mavlink/c_library_v2-master/** -whitespace
+Modules/modules_Algorithm/VQF/** -whitespace
+Modules/modules_BMI270/modules_BMI270_config_file.h -whitespace
