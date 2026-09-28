@@ -23,6 +23,17 @@
 | 数据记录 | SDMMC 4-bit + FatFs；飞行日志和 MAVLink 日志下载 |
 | 调试分析 | SWD、SEGGER RTT/SystemView、DWT、主机回归测试 |
 
+## 配套 Bootloader 与上位机
+
+本仓库是作品集的飞控主入口；A/B 启动适配、升级工具和桌面端分别在独立仓库维护，避免把 Bootloader、Node/Electron 依赖和飞行固件生命周期耦合在一起。
+
+| 配套项目 | 内容 | 验证状态 |
+|---|---|---|
+| [STM32H743 UAV A/B Bootloader](https://github.com/ydwawly/stm32h743-uav-ab-bootloader) | USB CDC v2、A/B 双 768 KiB 应用分区、CRC32、试运行确认与 IWDG 回滚 | 四个升级窗口物理断电 4/4 通过，确认状态跨完全断电保持 |
+| [AeroLink UAV Control Station](https://github.com/ydwawly/aerolink-uav-control-station) | MAVLink 2 遥测/参数/日志、500 Hz HIL、3D/地图、原生 `.uavfw` 升级界面 | 32/32 测试、生产构建和实板 A/B 升级通过 |
+
+配套 Bootloader 仓库包含从本项目派生的 Slot A/Slot B 链接版本；本仓库继续保留可独立烧录的正式飞控工程。上位机在飞控未解锁时通过 `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN` 请求进入 Bootloader，随后按 USB 序列号重新识别端口并完成非活动分区升级。
+
 ## 核心设计
 
 - **事件驱动的 1 kHz 控制链路**：BMI088 数据就绪触发姿态任务，姿态结果再唤醒控制任务；1 ms 超时只执行安全检查，不用旧反馈重复运行控制律。
