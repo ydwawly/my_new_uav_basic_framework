@@ -12,13 +12,13 @@ jobs:
   quality-and-host-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install host tools
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc python3-venv
           python3 -m venv .ci-venv
-          .ci-venv/bin/pip install 'clang-format==23.1.0'
+          .ci-venv/bin/pip install 'clang-format==23.1.0' -r Tests/requirements-ci.txt
       - name: Check formatting
         shell: bash
         run: |
@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: |
           for test in Tests/*_regression.py Tests/code_quality_check.py; do
-            python3 "$test"
+            .ci-venv/bin/python "$test"
           done
 
   arm-firmware-build:
@@ -50,7 +50,7 @@ jobs:
             build_type: RelWithDebInfo
             systemview: "ON"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install ARM toolchain and Ninja
         run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi ninja-build python3-venv
       - name: Install CMake 4

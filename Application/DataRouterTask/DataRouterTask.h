@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 #include "FreeRTOS.h"
-#include "bsp_USB.h"
+#include "bsp_usb.h"
 #include "mavlink_user.h"
 #include "modules_SD_Card.h"
 #include "queue.h"

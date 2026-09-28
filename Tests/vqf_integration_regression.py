@@ -15,8 +15,9 @@ VQF_DIR = ROOT / "Modules" / "modules_Algorithm" / "VQF"
 ATTITUDE_DIR = ROOT / "Application" / "App_attitude"
 
 UPSTREAM_HASHES = {
-    "vqf.cpp": "53874145a2d8a3b7670bbf844f5c9c96644bd6d7e5f9fc8c0d7865bfdac34215",
-    "vqf.hpp": "7d9e43427fdd7bccaed40cc81c450a4ee3995409c5dac4a37a143e5e6a123e1c",
+    # Hashes of the read-only VQF sources imported into this repository.
+    "vqf.cpp": "fb035248ebeccc16897476c7afca5e912f3ad77f0faebd16ff4d5f94b44c614b",
+    "vqf.hpp": "ef15c074bce16adb76e7f191970ea589bc6d7ce01027130e5233041c0e11eb24",
 }
 
 
